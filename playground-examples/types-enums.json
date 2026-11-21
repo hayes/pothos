@@ -1,0 +1,32 @@
+{
+  "id": "types-enums",
+  "title": "Enum values and arguments",
+  "description": "Run the query. Change unit(value: Meters) to unit(value: Feet); query enum values are unquoted. Select variables, change unit to \"Feet\" in Variables, and run again.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/enums"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\n\nconst LengthUnit = builder.enumType('LengthUnit', {\n  values: ['Feet', 'Meters'],\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    height: t.float({\n      args: {\n        unit: t.arg({ type: LengthUnit, required: true, defaultValue: 'Meters' }),\n      },\n      resolve: (_parent, { unit }) => (unit === 'Meters' ? 5 : 5 * 3.281),\n    }),\n    unit: t.field({\n      type: LengthUnit,\n      args: { value: t.arg({ type: LengthUnit, required: true }) },\n      resolve: (_parent, { value }) => value,\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Enums {\n  height\n  feet: height(unit: Feet)\n  unit(value: Meters)\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query Enums {\n  height\n  feet: height(unit: Feet)\n  unit(value: Meters)\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "variables",
+      "query": "query Units($unit: LengthUnit!) {\n  height(unit: $unit)\n  unit(value: $unit)\n}\n",
+      "variables": "{ \"unit\": \"Meters\" }\n",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

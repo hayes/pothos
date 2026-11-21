@@ -1,0 +1,1 @@
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,88572,t=>{"use strict";t.s(["setGraphQLSchema",0,function(t){}])},163630,t=>{t.v(c=>Promise.all(["static/chunks/08cbymt6dg9hl.js"].map(c=>t.l(c))).then(()=>c(543379)))}]);

@@ -1,0 +1,102 @@
+# Selections
+URL: /docs/plugins/drizzle/selections
+Selecting the columns and relations your fields need
+
+
+Selections describe the database data a GraphQL field needs. The example User starts with
+`select: {}` so requesting one field does not load unrelated columns or a profile.
+
+## Field selections [#field-selections]
+
+An exposed column, such as `t.exposeString('firstName')`, contributes its own selection. A custom
+resolver must declare the columns it reads:
+
+```typescript playground example="plugin-drizzle" query="{ author(id: 1) { fullName } }"
+fullName: t.string({
+  select: { columns: { firstName: true, lastName: true } },
+  resolve: (user) => `${user.firstName} ${user.lastName}`,
+}),
+```
+
+## Only load a profile when requested [#only-load-a-profile-when-requested]
+
+A biography is a string in GraphQL, but it comes from the optional profile relation. The field
+selects that relation only when requested:
+
+```typescript playground example="plugin-drizzle" query="{ author(id: 1) { fullName bio } missingProfile: author(id: 3) { fullName bio } }"
+bio: t.string({
+  nullable: true,
+  select: { with: { profile: true } },
+  resolve: (user) => user.profile?.bio,
+}),
+```
+
+A missing profile returns null. A name-only query does not load the profile; adding `bio` adds
+the relation to the database query.
+
+## Computed SQL values [#computed-sql-values]
+
+The same mechanism supports SQL expressions through `extras`. For example, a field can select
+`lowercaseName` only when the GraphQL operation requests it:
+
+```typescript playground example="plugin-drizzle" query="{ author(id: 1) { fullName lowercaseName } }"
+lowercaseName: t.string({
+  select: {
+    extras: {
+      lowercaseName: (users, { sql }) => sql<string>`lower(${users.firstName})`,
+    },
+  },
+  resolve: (user) => user.lowercaseName,
+}),
+```
+
+## Type selections [#type-selections]
+
+By default, a `drizzleObject` gives its resolvers access to all columns of the table. A type-level
+`select` replaces that default and makes its selected data available to every field resolver.
+This alternative always loads the name, profile, and expression:
+
+```ts
+const User = builder.drizzleObject('users', {
+  name: 'User',
+  select: {
+    columns: {
+      firstName: true,
+      lastName: true,
+    },
+    with: {
+      profile: true,
+    },
+    extras: {
+      lowercaseName: (users, { sql }) => sql<string>`lower(${users.firstName})`
+    },
+  },
+  fields: (t) => {
+    return {
+      fullName: t.string({
+        resolve: (user, args, ctx, info) => `${user.firstName} ${user.lastName}`,
+      }),
+      bio: t.string({
+        nullable: true,
+        resolve: (user) => user.profile?.bio,
+      }),
+      lowercaseName: t.string({
+        resolve: (user) => user.lowercaseName,
+      }),
+    };
+  },
+});
+```
+
+Any selections added to the type will be available to consume in all resolvers. Columns that are not
+selected can still be exposed as before.
+
+Use type selections for data required whenever the type is loaded, and field selections for data
+needed by a particular field. Both are merged into the parent query; they do not make each field
+an independent database query. See [Query planning](./query-planning).
+
+With `ScopeAuthPlugin`, scope checks that read the parent see what its type loads (its `select`, or
+every column), even for a row returned from a plain `t.field`. A row missing that data is reloaded,
+so a row that no longer exists fails the field with `Unexpected error.`. To return a deleted row,
+load it with a `t.drizzleField` query before deleting it. Only top-level keys are checked, so a row
+with a partly loaded relation isn't reloaded.

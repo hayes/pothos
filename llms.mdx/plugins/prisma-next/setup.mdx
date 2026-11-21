@@ -1,0 +1,233 @@
+# Setup
+URL: /docs/plugins/prisma-next/setup
+Setting up the Prisma ORM 8 plugin
+
+
+## Install [#install]
+
+Set up Prisma ORM 8 and your contract with the
+[Prisma ORM documentation](https://www.prisma.io/docs/orm), then install the plugin with its Prisma
+peers:
+
+<CodeBlockTabs defaultValue="npm">
+  <CodeBlockTabsList>
+    <CodeBlockTabsTrigger value="npm">
+      npm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="pnpm">
+      pnpm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="yarn">
+      yarn
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="bun">
+      bun
+    </CodeBlockTabsTrigger>
+  </CodeBlockTabsList>
+
+  <CodeBlockTab value="npm">
+    ```bash
+    npm install --save @pothos/core @pothos/plugin-prisma-next graphql @prisma/orm-family-sql@8.0.0-rc.23 @prisma/orm-framework@8.0.0-rc.23
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="pnpm">
+    ```bash
+    pnpm add @pothos/core @pothos/plugin-prisma-next graphql @prisma/orm-family-sql@8.0.0-rc.23 @prisma/orm-framework@8.0.0-rc.23
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="yarn">
+    ```bash
+    yarn add @pothos/core @pothos/plugin-prisma-next graphql @prisma/orm-family-sql@8.0.0-rc.23 @prisma/orm-framework@8.0.0-rc.23
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="bun">
+    ```bash
+    bun add @pothos/core @pothos/plugin-prisma-next graphql @prisma/orm-family-sql@8.0.0-rc.23 @prisma/orm-framework@8.0.0-rc.23
+    ```
+  </CodeBlockTab>
+</CodeBlockTabs>
+
+The plugin targets Prisma ORM `8.0.0-rc.23` exactly. Install every `@prisma/orm-*` package,
+including the one for your database (such as `@prisma/orm-postgres`), at that version. Two copies
+of the same package won't work together. The database packages need `temporal-polyfill`. npm and
+pnpm install it automatically, but with Yarn you have to add it yourself.
+
+Requires Node.js 22.20+ or 24.7+. This plugin and
+`@pothos/plugin-prisma` can't be used in the same program.
+If you use [`@pothos/plugin-scope-auth`](/docs/plugins/scope-auth), it needs to be 4.3.0 or newer.
+
+## Configure the builder [#configure-the-builder]
+
+Pass your Prisma client to the plugin, and your contract's type as `PrismaContract`:
+
+```ts
+import SchemaBuilder from '@pothos/core';
+import PrismaPlugin from '@pothos/plugin-prisma-next';
+import { contract, db } from './prisma/db';
+
+const builder = new SchemaBuilder<{
+  PrismaContract: typeof contract;
+}>({
+  plugins: [PrismaPlugin],
+  prisma: { client: db },
+});
+
+const User = builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+  }),
+});
+
+const Post = builder.prismaObject('Post', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    recentPosts: t.prismaField({
+      type: ['Post'],
+      query: { where: { published: 1 }, orderBy: { createdAt: 'desc' }, limit: 10 },
+    }),
+  }),
+});
+
+export const schema = builder.toSchema();
+```
+
+Later examples pass the `User` and `Post` refs as a field's `type`. A model name such as `'Post'`
+works too. Later pages add more fields to these types, which you can also do with
+[`prismaObjectFields`](./objects#adding-fields).
+
+For nodes and connections, also install and add [`@pothos/plugin-relay`](/docs/plugins/relay).
+
+This example uses PostgreSQL:
+
+* The client groups models by schema (`db.orm.public.Post`). The plugin chooses that Collection
+  automatically for the field above.
+* SQLite and MySQL work the same way with their own Prisma packages. Their clients don't group
+  models, and the rest of these docs use that shorter form, `db.orm.Post`.
+
+Pass a context object, such as `contextValue: {}`, when you execute an operation. The plugin keeps
+per-request state on it.
+Examples using authentication assume context fields `userId: string` and `isAdmin: boolean`. Add
+`Context: YourContext` alongside `PrismaContract` in the builder's type parameter, and supply those
+values for each request. See [Context](../../guide/context) for configuring and typing it.
+
+## Models in several namespaces [#models-in-several-namespaces]
+
+If your contract has more than one namespace, refer to models by their full name, such as
+`'auth.User'`. GraphQL type names leave the namespace out, so when two namespaces both have a
+`User`, give one of them a `name`:
+
+```ts
+builder.prismaObject('auth.User', {
+  name: 'AuthUser',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+```
+
+## Plugin options [#plugin-options]
+
+These go under `prisma` in the builder options.
+
+* `client`: your Prisma client. Required. For a [request-scoped client](./transactions#share-a-transaction-across-an-operation),
+  pass `(ctx) => client` and set `context` to the base client's `context`.
+* `skipDeferredFragments`: load `@defer` fragments when they execute instead of in the initial
+  query. Defaults to `true`.
+* `defaultConnectionSize` / `maxConnectionSize`: default and maximum page sizes. Default to 20 and
+  100\.
+* `filterConnectionTotalCount`: when `true` (the default), a `relatedConnection`'s `totalCount`
+  only counts rows matching its `query.where`.
+
+## Transactions [#transactions]
+
+For multi-step mutations and request-scoped clients, see the [Transactions guide](./transactions).
+
+## TypeScript and Temporal [#typescript-and-temporal]
+
+If you use Temporal columns and declaration emit fails with TS2742 or TS2883 mentioning
+`temporal-spec`, add it as a direct dependency:
+
+<CodeBlockTabs defaultValue="npm">
+  <CodeBlockTabsList>
+    <CodeBlockTabsTrigger value="npm">
+      npm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="pnpm">
+      pnpm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="yarn">
+      yarn
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="bun">
+      bun
+    </CodeBlockTabsTrigger>
+  </CodeBlockTabsList>
+
+  <CodeBlockTab value="npm">
+    ```bash
+    npm install --save temporal-spec
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="pnpm">
+    ```bash
+    pnpm add temporal-spec
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="yarn">
+    ```bash
+    yarn add temporal-spec
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="bun">
+    ```bash
+    bun add temporal-spec
+    ```
+  </CodeBlockTab>
+</CodeBlockTabs>
+
+If TypeScript reports missing `Temporal` globals, import their declarations once in your project
+(for example in a `globals.d.ts` file):
+
+```ts
+import type {} from 'temporal-spec/global';
+```
+
+This only adds types. You still need Temporal at runtime, natively or from a polyfill.
+
+## Limitations [#limitations]
+
+* On MySQL, Prisma reads rows but can't write them, count them or run aggregates yet. MongoDB isn't
+  supported.
+* Clients see `Invalid ID.` or `Invalid cursor.` for a malformed ID or cursor, and the Relay
+  plugin's `Invalid global ID: …` for an ID that isn't a global ID. If the plugin finds a problem
+  in your configuration while running a request, the field fails with `Unexpected error.`. The
+  original error is on `error.cause`. Errors from the ORM and from your code are not changed and
+  can include model and column names, so mask them in your GraphQL server.
+* Prisma's packages are ESM-only, so use `"moduleResolution": "nodenext"` or `"bundler"`. A
+  CommonJS project on `node16` gets TS1541 errors unless `skipLibCheck` is on.
+* graphql-jit isn't supported. Fields that load rows fail with `Unexpected error.` under it.
+
+## Next steps [#next-steps]
+
+Read [Queries and selections](./queries) for how `collection`, `query` and `select` work together,
+then [Objects](./objects) and [Relations](./relations) for defining the rest of your schema.

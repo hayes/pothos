@@ -1,0 +1,26 @@
+{
+  "id": "types-unions",
+  "title": "Union members",
+  "description": "Run the facts query. Change the numeric fact value from 35 to 40, then run again and inspect the matching fragment.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/unions"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\n\nconst GiraffeStringFactRef = builder\n  .objectRef<{ factKind: 'string'; fact: string }>('GiraffeStringFact')\n  .implement({\n    fields: (t) => ({\n      fact: t.exposeString('fact'),\n    }),\n  });\n\nconst GiraffeNumericFactRef = builder\n  .objectRef<{ factKind: 'number'; fact: string; value: number }>('GiraffeNumericFact')\n  .implement({\n    fields: (t) => ({\n      fact: t.exposeString('fact'),\n      value: t.exposeFloat('value'),\n    }),\n  });\n\nconst GiraffeFactRef = builder.unionType('GiraffeFact', {\n  types: [GiraffeStringFactRef, GiraffeNumericFactRef],\n  resolveType: (fact) => {\n    switch (fact.factKind) {\n      case 'string':\n        return GiraffeStringFactRef;\n      case 'number':\n        return GiraffeNumericFactRef;\n    }\n  },\n});\n\nconst facts: (typeof GiraffeFactRef.$inferType)[] = [\n  {\n    factKind: 'string',\n    fact: 'Each giraffe has a unique pattern of spots.',\n  },\n  {\n    factKind: 'number',\n    fact: 'Top speed (MPH)',\n    value: 35,\n  },\n];\n\nbuilder.queryType({\n  fields: (t) => ({\n    giraffeFacts: t.field({\n      type: [GiraffeFactRef],\n      resolve: () => facts,\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Unions {\n  giraffeFacts {\n    __typename\n    ... on GiraffeStringFact {\n      fact\n    }\n    ... on GiraffeNumericFact {\n      fact\n      value\n    }\n  }\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query Unions {\n  giraffeFacts {\n    __typename\n    ... on GiraffeStringFact {\n      fact\n    }\n    ... on GiraffeNumericFact {\n      fact\n      value\n    }\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

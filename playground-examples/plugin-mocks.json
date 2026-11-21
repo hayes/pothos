@@ -1,0 +1,26 @@
+{
+  "id": "plugin-mocks",
+  "title": "Replace a resolver at schema build",
+  "description": "Run the query to compare mocked and untouched fields. Change Mock result! to your own fixture, or remove the mocks option to see Not implemented. Reset restores the mock. Subscription mocks require local subscribe() execution.",
+  "category": "plugins",
+  "relatedDocs": [
+    "/docs/plugins/mocks"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport MocksPlugin from '@pothos/plugin-mocks';\n\nconst builder = new SchemaBuilder({ plugins: [MocksPlugin] });\nbuilder.queryType({\n  fields: (t) => ({\n    greeting: t.string({\n      resolve: () => {\n        throw new Error('Not implemented');\n      },\n    }),\n    untouched: t.string({ resolve: () => 'Original resolver' }),\n  }),\n});\nexport const schema = builder.toSchema({\n  mocks: {\n    Query: {\n      greeting: () => 'Mock result!',\n    },\n  },\n});\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Greeting {\n  greeting\n  untouched\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query Greeting {\n  greeting\n  untouched\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

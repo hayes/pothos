@@ -1,0 +1,41 @@
+{
+  "id": "architecture-plugin-hooks",
+  "title": "Plugin configuration hooks",
+  "description": "Run 01-Inspect to see descriptions and confirm removeMe fields and enum values are absent. Change nestedOptionsObject.exampleOption in schema.ts and run again. Open Console: preparation runs once despite two toSchema calls. Run 02-Values to try the added builder method.",
+  "category": "patterns",
+  "relatedDocs": [
+    "/docs/guide/writing-plugins"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport { pluginName } from './plugin';\n\nconst builder = new SchemaBuilder({\n  plugins: [pluginName],\n  optionInRootOfConfig: true,\n  nestedOptionsObject: { exampleOption: 'Configured object' },\n});\nconst User = builder.objectRef<{ name: string }>('User').implement({\n  optionOnObject: true,\n  fields: (t) => ({\n    name: t.exposeString('name'),\n    removeMe: t.string({ resolve: () => 'Hidden' }),\n  }),\n});\nconst Choice = builder.enumType('Choice', {\n  values: { KEEP: { value: 'keep' }, REMOVE: { value: 'removeMe' } },\n});\nconst Input = builder.inputType('ExampleInput', {\n  fields: (t) => ({ keep: t.string(), removeMe: t.string() }),\n});\nconst Custom = builder.buildCustomObject();\nconst custom: { custom: 'shape' } = { custom: 'shape' };\nbuilder.queryType({\n  fields: (t) => ({\n    user: t.field({ type: User, resolve: () => ({ name: 'Alex' }) }),\n    custom: t.field({ type: Custom, resolve: () => custom }),\n    choice: t.field({ type: Choice, resolve: (): 'keep' => 'keep' }),\n  }),\n});\nbuilder.mutationType({\n  fields: (t) => ({\n    update: t.boolean({\n      customMutationFieldOption: true,\n      args: { input: t.arg({ type: Input }) },\n      resolve: () => true,\n    }),\n  }),\n});\n// Build twice: runUnique runs the preparation callback only once.\nbuilder.toSchema({ customBuildTimeOptions: false });\nexport const schema = builder.toSchema({ customBuildTimeOptions: true });\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "global-types.ts",
+      "content": "import type {\n  FieldNullability,\n  InputFieldMap,\n  ObjectRef,\n  SchemaTypes,\n  TypeParam,\n} from '@pothos/core';\nimport type { HooksPlugin } from './plugin';\n\ndeclare global {\n  namespace PothosSchemaTypes {\n    interface Plugins<Types extends SchemaTypes> {\n      architectureHooks: HooksPlugin<Types>;\n    }\n    interface SchemaBuilderOptions<Types extends SchemaTypes> {\n      optionInRootOfConfig?: boolean;\n      nestedOptionsObject?: { exampleOption: string };\n    }\n    interface BuildSchemaOptions<Types extends SchemaTypes> {\n      customBuildTimeOptions?: boolean;\n    }\n    interface ObjectTypeOptions<Types extends SchemaTypes, Shape> {\n      optionOnObject?: boolean;\n    }\n    interface MutationFieldOptions<\n      Types extends SchemaTypes,\n      Type extends TypeParam<Types>,\n      Nullable extends FieldNullability<Type>,\n      Args extends InputFieldMap,\n      ResolveReturnShape,\n    > {\n      customMutationFieldOption?: boolean;\n    }\n    interface SchemaBuilder<Types extends SchemaTypes> {\n      buildCustomObject: () => ObjectRef<Types, { custom: 'shape' }>;\n    }\n  }\n}\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "plugin.ts",
+      "content": "import './global-types';\nimport SchemaBuilder, {\n  BasePlugin,\n  type PothosEnumValueConfig,\n  type PothosInputFieldConfig,\n  type PothosOutputFieldConfig,\n  type PothosTypeConfig,\n  type SchemaTypes,\n} from '@pothos/core';\nimport { GraphQLSchema } from 'graphql';\n\nconst schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;\nschemaBuilderProto.buildCustomObject = function buildCustomObject() {\n  return this.objectRef<{ custom: 'shape' }>('CustomObject').implement({\n    fields: (t) => ({ custom: t.exposeString('custom') }),\n  });\n};\n\nexport class HooksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {\n  onTypeConfig(typeConfig: PothosTypeConfig) {\n    const label = this.builder.options.nestedOptionsObject?.exampleOption;\n    const rootOption = this.builder.options.optionInRootOfConfig;\n    const buildOption = this.options.customBuildTimeOptions;\n    if (typeConfig.kind === 'Object' && typeConfig.pothosOptions.optionOnObject) {\n      return {\n        ...typeConfig,\n        description: `${label}; root=${rootOption}; build=${buildOption}`,\n      };\n    }\n    return typeConfig;\n  }\n\n  onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {\n    if (fieldConfig.name === 'removeMe') {\n      return null;\n    }\n    if (fieldConfig.kind === 'Mutation' && fieldConfig.pothosOptions.customMutationFieldOption) {\n      return { ...fieldConfig, description: 'Configured mutation' };\n    }\n    return fieldConfig;\n  }\n\n  onInputFieldConfig(fieldConfig: PothosInputFieldConfig<Types>) {\n    return fieldConfig.name === 'removeMe' ? null : fieldConfig;\n  }\n\n  onEnumValueConfig(valueConfig: PothosEnumValueConfig<Types>) {\n    return valueConfig.value === 'removeMe' ? null : valueConfig;\n  }\n\n  beforeBuild() {\n    this.runUnique('architecture-added-field', () => {\n      console.log('Preparing schema once per builder');\n    });\n  }\n\n  afterBuild(schema: GraphQLSchema) {\n    return new GraphQLSchema({\n      ...schema.toConfig(),\n      description: 'Schema transformed after build',\n    });\n  }\n}\n\nexport const pluginName = 'architectureHooks';\nSchemaBuilder.registerPlugin(pluginName, HooksPlugin);\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "{\n  __schema {\n    description\n  }\n  userType: __type(name: \"User\") {\n    description\n    fields {\n      name\n    }\n  }\n  mutationType: __type(name: \"Mutation\") {\n    fields {\n      name\n      description\n    }\n  }\n  inputType: __type(name: \"ExampleInput\") {\n    inputFields {\n      name\n    }\n  }\n  enumType: __type(name: \"Choice\") {\n    enumValues {\n      name\n    }\n  }\n}\n",
+  "queries": [
+    {
+      "title": "01-Inspect",
+      "query": "{\n  __schema {\n    description\n  }\n  userType: __type(name: \"User\") {\n    description\n    fields {\n      name\n    }\n  }\n  mutationType: __type(name: \"Mutation\") {\n    fields {\n      name\n      description\n    }\n  }\n  inputType: __type(name: \"ExampleInput\") {\n    inputFields {\n      name\n    }\n  }\n  enumType: __type(name: \"Choice\") {\n    enumValues {\n      name\n    }\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "02-Values",
+      "query": "{\n  user {\n    name\n  }\n  custom {\n    custom\n  }\n  choice\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ]
+}

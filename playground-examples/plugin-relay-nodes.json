@@ -1,0 +1,26 @@
+{
+  "id": "plugin-relay-nodes",
+  "title": "Refetch Relay nodes",
+  "description": "Run the query and compare global IDs across users, node and nodes. Change the single node ID from VXNlcjox to VXNlcjoz to refetch Katherine instead of Ada. The missing node remains null and nodes keeps requested order. Reset example restores the query.",
+  "category": "plugins",
+  "relatedDocs": [
+    "/docs/plugins/relay"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport RelayPlugin from '@pothos/plugin-relay';\n\nconst builder = new SchemaBuilder({ plugins: [RelayPlugin], relay: {} });\n\ntype UserShape = { id: string; name: string };\nconst users: UserShape[] = [\n  { id: '1', name: 'Ada' },\n  { id: '2', name: 'Grace' },\n  { id: '3', name: 'Katherine' },\n];\nconst User = builder.objectRef<UserShape>('User');\nbuilder.node(User, {\n  id: { resolve: (user) => user.id },\n  loadOne: (id) => users.find((user) => user.id === id) ?? null,\n  fields: (t) => ({ name: t.exposeString('name') }),\n});\nbuilder.queryType({\n  fields: (t) => ({ users: t.field({ type: [User], resolve: () => users }) }),\n});\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Refetch {\n  users {\n    id\n    name\n  }\n  node(id: \"VXNlcjox\") {\n    id\n    ... on User {\n      name\n    }\n  }\n  nodes(ids: [\"VXNlcjoy\", \"VXNlcjox\", \"VXNlcjo5OQ==\"]) {\n    id\n    ... on User {\n      name\n    }\n  }\n}\n",
+  "queries": [
+    {
+      "title": "01-refetch",
+      "query": "query Refetch {\n  users {\n    id\n    name\n  }\n  node(id: \"VXNlcjox\") {\n    id\n    ... on User {\n      name\n    }\n  }\n  nodes(ids: [\"VXNlcjoy\", \"VXNlcjox\", \"VXNlcjo5OQ==\"]) {\n    id\n    ... on User {\n      name\n    }\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

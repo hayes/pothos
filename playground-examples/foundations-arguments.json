@@ -1,0 +1,26 @@
+{
+  "id": "foundations-arguments",
+  "title": "Field arguments",
+  "description": "Run the query to compare omitted defaults with explicit null, list arguments, and enum units. Change times or switch Feet to Meters and run again.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/args"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\n\nbuilder.queryType({\n  fields: (t) => ({\n    greeting: t.string({\n      args: {\n        name: t.arg({ type: 'String', required: true }),\n      },\n      resolve: (_parent, args) => `Hello, ${args.name}!`,\n    }),\n  }),\n});\n\nbuilder.queryField('repeat', (t) =>\n  t.string({\n    args: {\n      text: t.arg.string({ required: true }),\n      times: t.arg.int({ defaultValue: 2 }),\n    },\n    resolve: (_parent, args) => args.text.repeat(Math.max(0, args.times ?? 1)),\n  }),\n);\n\nbuilder.queryField('knownGiraffes', (t) =>\n  t.stringList({\n    args: {\n      names: t.arg.stringList({ required: true }),\n      moreNames: t.arg({ type: ['String'], required: true }),\n    },\n    resolve: (_parent, args) =>\n      [...args.names, ...args.moreNames].filter((name) => ['Gina', 'James'].includes(name)),\n  }),\n);\n\nbuilder.queryField('nonNullNames', (t) =>\n  t.stringList({\n    args: {\n      names: t.arg.stringList({\n        required: { list: true, items: false },\n      }),\n    },\n    resolve: (_parent, args) => args.names.filter((name) => name != null),\n  }),\n);\n\nconst LengthUnit = builder.enumType('LengthUnit', {\n  values: { Feet: {}, Meters: {} },\n});\n\nconst GiraffeRef = builder.objectRef<{ heightInMeters: number }>('Giraffe').implement({\n  fields: (t) => ({\n    height: t.float({\n      args: {\n        unit: t.arg({ type: LengthUnit, defaultValue: 'Meters' }),\n      },\n      resolve: (giraffe, args) =>\n        args.unit === 'Feet' ? giraffe.heightInMeters * 3.281 : giraffe.heightInMeters,\n    }),\n  }),\n});\n\nbuilder.queryField('giraffe', (t) =>\n  t.field({\n    type: GiraffeRef,\n    resolve: () => ({ heightInMeters: 5 }),\n  }),\n);\n\nbuilder.queryField('countNames', (t) =>\n  t.int({\n    args: {\n      groups: t.arg({\n        type: t.arg.listRef(t.arg.listRef('String', { required: false })),\n        required: true,\n      }),\n    },\n    resolve: (_parent, args) =>\n      args.groups.reduce((count, group) => count + group.filter((name) => name != null).length, 0),\n  }),\n);\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Arguments {\n  greeting(name: \"Gina\")\n  repeat(text: \"ha\")\n  once: repeat(text: \"ha\", times: null)\n  knownGiraffes(names: [\"Gina\", \"Unknown\"], moreNames: [\"James\"])\n  nonNullNames(names: [\"Gina\", null, \"James\"])\n  giraffe {\n    meters: height\n    feet: height(unit: Feet)\n  }\n  countNames(groups: [[\"Gina\", null], [\"James\"]])\n}\n",
+  "queries": [
+    {
+      "title": "Arguments",
+      "query": "query Arguments {\n  greeting(name: \"Gina\")\n  repeat(text: \"ha\")\n  once: repeat(text: \"ha\", times: null)\n  knownGiraffes(names: [\"Gina\", \"Unknown\"], moreNames: [\"James\"])\n  nonNullNames(names: [\"Gina\", null, \"James\"])\n  giraffe {\n    meters: height\n    feet: height(unit: Feet)\n  }\n  countNames(groups: [[\"Gina\", null], [\"James\"]])\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

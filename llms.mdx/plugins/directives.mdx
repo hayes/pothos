@@ -1,0 +1,152 @@
+# Directives plugin
+URL: /docs/plugins/directives
+Attach directive metadata to types, fields, and schemas for other tools to consume.
+
+
+Attach schema directives to Pothos types and fields. The plugin records directive metadata in
+GraphQL extensions and AST nodes. A schema transformer or another consumer implements the
+behavior of directives such as rate limits or authorization checks.
+
+## Install [#install]
+
+<CodeBlockTabs defaultValue="npm">
+  <CodeBlockTabsList>
+    <CodeBlockTabsTrigger value="npm">
+      npm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="pnpm">
+      pnpm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="yarn">
+      yarn
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="bun">
+      bun
+    </CodeBlockTabsTrigger>
+  </CodeBlockTabsList>
+
+  <CodeBlockTab value="npm">
+    ```bash
+    npm install --save @pothos/plugin-directives
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="pnpm">
+    ```bash
+    pnpm add @pothos/plugin-directives
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="yarn">
+    ```bash
+    yarn add @pothos/plugin-directives
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="bun">
+    ```bash
+    bun add @pothos/plugin-directives
+    ```
+  </CodeBlockTab>
+</CodeBlockTabs>
+
+## Declare and attach directives [#declare-and-attach-directives]
+
+The `Directives` schema type declares each directive's allowed locations and argument shape.
+This example records a `rateLimit` directive on the `hello` field:
+
+```typescript playground example="plugin-directives"
+import SchemaBuilder from '@pothos/core';
+import DirectivesPlugin from '@pothos/plugin-directives';
+
+const builder = new SchemaBuilder<{
+  Directives: {
+    rateLimit: {
+      locations: 'FIELD_DEFINITION';
+      args: { limit: number; duration: number };
+    };
+  };
+}>({
+  plugins: [DirectivesPlugin],
+});
+
+builder.queryType({
+  fields: (t) => ({
+    hello: t.string({
+      directives: [{ name: 'rateLimit', args: { limit: 5, duration: 60 } }],
+      resolve: () => 'world',
+    }),
+  }),
+});
+```
+
+The schema still returns `world` on every request until a consumer applies the rate limit.
+The generic checks your Pothos definitions; it does not register a GraphQL directive definition.
+
+## Directive formats [#directive-formats]
+
+An array preserves order and allows a directive to occur more than once:
+
+```typescript
+builder.queryField('greeting', (t) =>
+  t.string({
+    directives: [{ name: 'rateLimit', args: { limit: 5, duration: 60 } }],
+    resolve: () => 'hello',
+  }),
+);
+```
+
+For a directive that occurs once, an object is also accepted. This is an alternative definition
+of the same field:
+
+```typescript
+builder.queryField('greeting', (t) =>
+  t.string({
+    directives: { rateLimit: { limit: 5, duration: 60 } },
+    resolve: () => 'hello',
+  }),
+);
+```
+
+By default, extensions contain an array of `{ name, args }` entries. Set
+`directives: { useGraphQLToolsUnorderedDirectives: true }` on the builder when a consumer requires
+an object keyed by directive name. That output format does not preserve order across directive names.
+
+## Locations [#locations]
+
+Use `directives` in the options for the type, field, argument, or enum value being annotated.
+The supported locations are:
+
+* `ARGUMENT_DEFINITION`
+* `ENUM_VALUE`
+* `ENUM`
+* `FIELD_DEFINITION`
+* `INPUT_FIELD_DEFINITION`
+* `INPUT_OBJECT`
+* `INTERFACE`
+* `OBJECT`
+* `SCALAR`
+* `SCHEMA`
+* `UNION`
+
+For `SCHEMA` directives, use `schemaDirectives` on `builder.toSchema()`. Declare `SCHEMA` among
+that directive's allowed locations in the `Directives` generic. The separate `directives` option
+on `toSchema()` accepts GraphQL directive definitions; it does not attach directives to the schema.
+
+## Apply directive behavior [#apply-directive-behavior]
+
+Pass the built schema to the transformer supplied by your directive library. For example, with
+`graphql-rate-limit-directive` installed:
+
+```typescript
+import { rateLimitDirective } from 'graphql-rate-limit-directive';
+
+const { rateLimitDirectiveTransformer } = rateLimitDirective();
+const schema = rateLimitDirectiveTransformer(builder.toSchema());
+```
+
+Check the consumer's required extensions format and directive-definition setup when integrating
+another library. Pothos stores the annotations; the consumer determines their runtime behavior.

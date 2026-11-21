@@ -1,0 +1,253 @@
+# Objects
+URL: /docs/plugins/prisma-next/objects
+Defining GraphQL types backed by contract models
+
+
+`builder.prismaObject` defines a GraphQL object type for a model in your contract.
+
+## Define a type [#define-a-type]
+
+Pass the model name and the usual object type options. Column types come from the contract.
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+  }),
+});
+```
+
+The GraphQL type is named after the model. Pass `name` to call it something else.
+
+To add fields to a type elsewhere, use [`prismaObjectFields`](#adding-fields). To expose the same
+model as another GraphQL type, define a [`variant`](./variants) or a
+[`prismaInterface`](./interfaces).
+To return these objects from a query field, use `t.prismaField`; see
+[Queries and selections](./queries).
+
+## Selections [#selections]
+
+Use `select` when a resolver needs columns or relations that the field doesn't expose. The plugin
+loads them with the rest of the query:
+
+```ts
+builder.prismaObject('User', {
+  // Loaded whenever a User is queried
+  select: { firstName: true, lastName: true },
+  fields: (t) => ({
+    fullName: t.string({
+      resolve: (user) => `${user.firstName} ${user.lastName}`,
+    }),
+    // Loaded only when emailDomain is queried
+    emailDomain: t.string({
+      select: ['email'],
+      resolve: (user) => user.email.split('@')[1] ?? '',
+    }),
+    publishedPostCount: t.int({
+      select: {
+        posts: (posts) => ({ publishedCount: posts.where({ published: 1 }).count() }),
+      },
+      resolve: (user) => user.publishedCount,
+    }),
+  }),
+});
+```
+
+A `select` accepts:
+
+* Columns: `{ email: true }` or `['email']`.
+* Relations: `{ posts: true }`, which loads the relation's scalar columns.
+* Filtered or sorted relations: `{ posts: { where: { published: 1 }, orderBy: { createdAt: 'desc' }, limit: 5 } }`.
+  `where` and `orderBy` take the same values as in `t.relation`'s `query`.
+* A nested `select` for the relation's rows: `{ comments: { limit: 5, select: { post: true } } }`.
+* `type`: a ref or model name for a [variant](./inheritance) of the related model. Only that
+  variant's rows are loaded: `{ tasks: { type: Bug } }`.
+* Counts and aggregates of a to-many relation, in a field's `select` only:
+  `{ posts: (posts) => ({ postCount: posts.count() }) }`. Each key (`postCount`) is added to the
+  row, so don't use the name of a column or relation.
+
+A to-one relation only takes `type` and `select`. Aggregates have to be read in a resolver, because
+`t.expose*` only works on columns.
+
+A model's types (the object, its [variants](./variants) and [interfaces](./interfaces)) can each
+have a `select`. If two of them select the same relation, they have to use the same options,
+including in nested `select`s, or the schema build throws. `where` and `orderBy`
+functions are compared by reference, so share one function between the types. To load a relation
+with different options, use `t.relation` or a field's `select`.
+
+To filter a to-one relation, select it and return `null` from the resolver. Here a comment shows its
+post's title only when the post is published:
+
+```ts
+builder.prismaObject('Comment', {
+  fields: (t) => ({
+    postTitle: t.string({
+      nullable: true,
+      select: { post: true },
+      resolve: (comment) => (comment.post.published ? comment.post.title : null),
+    }),
+  }),
+});
+```
+
+### Selecting per request [#selecting-per-request]
+
+A field's `select` can also be a function of its arguments and context. Here the field selects
+`lastName` only when the client asks for the full name. A column that only some branches select is
+optional on the parent:
+
+```ts
+name: t.string({
+  args: { full: t.arg.boolean() },
+  select: (args) => (args.full ? { firstName: true, lastName: true } : { firstName: true }),
+  resolve: (user, args) =>
+    args.full && user.lastName ? `${user.firstName} ${user.lastName}` : user.firstName,
+}),
+```
+
+With `AsyncSelections: true` in the builder's types, the function can be async.
+
+The function's third argument, `nestedSelection`, is for custom fields that return objects. Use
+it for a relation to load what the query selects under the field. The rows only include the
+primary key and the selected columns, so pass it a `select` for anything else the resolver reads.
+See [Indirect relations](./indirect-relations) for examples.
+
+`select`, `query` and `where` functions are called while the plugin builds a query, not once per
+row. They can be called more than once in a request, so they shouldn't have side effects.
+
+### Resolver data [#resolver-data]
+
+A resolver can read the model's primary or non-null unique key, the type's `select`, and its own
+field's `select`. Other columns may not be loaded.
+
+The type of a row loaded by the plugin includes `PrismaPlanned<'User'>`. To return rows from custom
+resolvers, see
+[Returning rows from other fields](./relations#returning-rows-from-other-fields).
+
+### Auth checks [#auth-checks]
+
+Auth checks on the type, and field options from other plugins such as `authScopes` and
+`grantScopes`, can read:
+
+* the primary key
+* the columns and relations in the `select`s of the type and its interfaces
+* on a `t.expose*` field, the exposed column
+
+A field's own `select` is only available in `resolve`. If a row is missing any of these, the
+plugin reloads it by its key before the check.
+
+## Mutations [#mutations]
+
+For a field that writes data, use `resolve`. Its first argument is the model's Collection, set up
+to load what the GraphQL query selects. Filter it to the row you want to change, then call one of
+Prisma's write methods:
+
+```ts
+builder.mutationType({
+  fields: (t) => ({
+    renameUser: t.prismaField({
+      type: 'User',
+      nullable: true,
+      args: {
+        id: t.arg.id({ required: true }),
+        firstName: t.arg.string({ required: true }),
+      },
+      resolve: (users, _root, args) =>
+        users.where({ id: String(args.id) }).update({ firstName: args.firstName }),
+    }),
+  }),
+});
+```
+
+The mutation returns the updated row with the fields the client selected.
+
+### Return a payload [#return-a-payload]
+
+For a result shaped like `{ user: ... }`, use `collectionFromInfo` to load the fields requested on
+`user`. The `path: ['user']` option tells it where that object appears in the result:
+
+```ts
+import { collectionFromInfo } from '@pothos/plugin-prisma-next';
+
+const RenameUserPayload = builder
+  .objectRef<{ user: typeof User.$inferType | null }>('RenameUserPayload')
+  .implement({
+    fields: (t) => ({ user: t.expose('user', { type: User, nullable: true }) }),
+  });
+
+builder.mutationField('renameUser', (t) =>
+  t.field({
+    type: RenameUserPayload,
+    args: { id: t.arg.id({ required: true }), firstName: t.arg.string({ required: true }) },
+    resolve: async (_root, args, ctx, info) => {
+      const users = await collectionFromInfo({
+        collection: db.orm.User.where({ id: String(args.id) }),
+        context: ctx,
+        info,
+        path: ['user'],
+      });
+      return { user: await users.update({ firstName: args.firstName }) };
+    },
+  }),
+);
+```
+
+If the payload field is an interface or union, pass `typeName` to choose the GraphQL object type
+to load. For mutations on inherited models, see [Model inheritance](./inheritance#mutations).
+
+If you export a function that returns rows from `collectionFromInfo`, give it a return type such
+as `Promise<PrismaPlanned<'User'> | null>` so TypeScript can emit its declaration.
+
+See [Transactions](./transactions) to run the write and the reads in one transaction.
+
+### `prismaFieldWithInput` [#prismafieldwithinput]
+
+With the [with-input plugin](/docs/plugins/with-input), `t.prismaFieldWithInput` combines
+`t.prismaField` with `t.fieldWithInput`, and takes `collection`, `query` or `resolve` the same way.
+The `input` fields become an input object argument:
+
+```ts
+builder.mutationField('updateFirstName', (t) =>
+  t.prismaFieldWithInput({
+    type: 'User',
+    nullable: true,
+    input: {
+      id: t.input.id({ required: true }),
+      firstName: t.input.string({ required: true }),
+    },
+    resolve: (users, _root, args) =>
+      users.where({ id: String(args.input.id) }).update({ firstName: args.input.firstName }),
+  }),
+);
+```
+
+## Adding fields [#adding-fields]
+
+To add fields to a type from another file, use `prismaObjectField` or `prismaObjectFields`.
+`builder.objectField` won't work here because it doesn't support `select`.
+
+```ts
+builder.prismaObjectField('User', 'displayName', (t) =>
+  t.string({
+    select: ['firstName', 'lastName'],
+    resolve: (user) => `${user.firstName} ${user.lastName}`,
+  }),
+);
+```
+
+If the resolver reads the type's `select`, pass the ref that `prismaObject` returns instead of the
+model name. Passing a variant's ref adds fields to that [variant](./variants).
+
+```ts
+const User = builder.prismaObject('User', {
+  select: { firstName: true, lastName: true },
+  fields: (t) => ({ id: t.exposeID('id') }),
+});
+
+builder.prismaObjectField(User, 'initials', (t) =>
+  t.string({
+    resolve: (user) => `${user.firstName[0]}${user.lastName[0]}`,
+  }),
+);
+```

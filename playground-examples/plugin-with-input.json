@@ -1,0 +1,32 @@
+{
+  "id": "plugin-with-input",
+  "title": "Generated and customized inputs",
+  "description": "Run the first operation and inspect QueryEchoInput and LookupInput in the SDL. Change Anonymous to Visitor: omitted and null inputs change, while the populated input stays Leia. The second operation omits a required input and fails. Reset restores the example.",
+  "category": "plugins",
+  "relatedDocs": [
+    "/docs/plugins/with-input"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport WithInputPlugin from '@pothos/plugin-with-input';\n\nconst builder = new SchemaBuilder({ plugins: [WithInputPlugin] });\nbuilder.queryType({\n  fields: (t) => ({\n    echo: t.fieldWithInput({\n      type: 'ID',\n      input: { id: t.input.id({ required: true }) },\n      resolve: (_, { input }) => input.id,\n    }),\n    lookup: t.fieldWithInput({\n      type: 'ID',\n      typeOptions: { name: 'LookupInput' },\n      argOptions: { name: 'criteria' },\n      input: { id: t.input.id({ required: true }) },\n      resolve: (_, { criteria }) => criteria.id,\n    }),\n    optional: t.fieldWithInput({\n      type: 'String',\n      argOptions: { required: false },\n      input: { name: t.input.string() },\n      resolve: (_, { input }) => input?.name ?? 'Anonymous',\n    }),\n  }),\n});\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Echo {\n  echo(input: { id: \"1\" })\n  lookup(criteria: { id: \"2\" })\n  omitted: optional\n  explicitNull: optional(input: null)\n  populated: optional(input: { name: \"Leia\" })\n}\n",
+  "queries": [
+    {
+      "title": "01-inputs",
+      "query": "query Echo {\n  echo(input: { id: \"1\" })\n  lookup(criteria: { id: \"2\" })\n  omitted: optional\n  explicitNull: optional(input: null)\n  populated: optional(input: { name: \"Leia\" })\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "02-required",
+      "query": "query Echo {\n  echo\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

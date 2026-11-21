@@ -1,0 +1,30 @@
+{
+  "id": "architecture-plugin-inputs",
+  "title": "Mapping input values",
+  "description": "Run the query to trim marked inputs, including a nested list. Remove the trimInput extension from a field in schema.ts and run again to see its whitespace preserved.",
+  "category": "patterns",
+  "relatedDocs": [
+    "/docs/guide/writing-plugins"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport { pluginName } from './plugin';\n\nconst builder = new SchemaBuilder({ plugins: [pluginName] });\nconst Input = builder.inputType('NamesInput', {\n  fields: (t) => ({ names: t.stringList({ required: true, extensions: { trimInput: true } }) }),\n});\nbuilder.queryType({\n  fields: (t) => ({\n    names: t.stringList({\n      args: {\n        first: t.arg.string({ required: true, extensions: { trimInput: true } }),\n        others: t.arg({ type: Input, required: true }),\n      },\n      resolve: (_parent, args) => [args.first, ...args.others.names],\n    }),\n  }),\n});\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "plugin.ts",
+      "content": "import SchemaBuilder, {\n  BasePlugin,\n  createInputValueMapper,\n  type InputTypeFieldsMapping,\n  mapInputFields,\n  type PothosOutputFieldConfig,\n  type SchemaTypes,\n} from '@pothos/core';\nimport type { GraphQLFieldResolver } from 'graphql';\n\ndeclare global {\n  namespace PothosSchemaTypes {\n    interface Plugins<Types extends SchemaTypes> {\n      architectureTrim: TrimPlugin<Types>;\n    }\n  }\n}\n\nexport class TrimPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {\n  // Safe to share: selection depends only on input-field extensions, not its enclosing output field.\n  private mappingCache = new Map<string, InputTypeFieldsMapping<Types, boolean>>();\n\n  wrapResolve(\n    resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,\n    fieldConfig: PothosOutputFieldConfig<Types>,\n  ): GraphQLFieldResolver<unknown, Types['Context'], object> {\n    const argMappings = mapInputFields(\n      fieldConfig.args,\n      this.buildCache,\n      (inputField) => (inputField.extensions?.trimInput ? true : null),\n      this.mappingCache,\n    );\n    if (!argMappings) {\n      return resolver;\n    }\n    const argMapper = createInputValueMapper(argMappings, (value) =>\n      typeof value === 'string' ? value.trim() : value,\n    );\n    return (parent, args, context, info) => resolver(parent, argMapper(args), context, info);\n  }\n}\n\nexport const pluginName = 'architectureTrim';\nSchemaBuilder.registerPlugin(pluginName, TrimPlugin);\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "{\n  names(first: \" Alex \", others: { names: [\" Sam \", \" Lucy \"] })\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "{\n  names(first: \" Alex \", others: { names: [\" Sam \", \" Lucy \"] })\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ]
+}

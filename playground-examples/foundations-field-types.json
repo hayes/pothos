@@ -1,0 +1,32 @@
+{
+  "id": "foundations-field-types",
+  "title": "Object and list fields",
+  "description": "Run Fields to compare object, enum, list, and added fields. Try Missing giraffe to see a nullable field report an error. Change Gina in the query to an unknown name.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/fields"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder<{\n  Objects: { Giraffe: { name: string } };\n}>({});\n\nbuilder.objectType('Giraffe', {\n  fields: (t) => ({\n    name: t.exposeString('name', {}),\n  }),\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    giraffe: t.field({\n      description: 'A giraffe',\n      type: 'Giraffe',\n      resolve: () => ({ name: 'Gina' }),\n    }),\n  }),\n});\n\nconst LengthUnit = builder.enumType('LengthUnit', {\n  values: { Feet: {}, Meters: {} },\n});\n\nbuilder.objectField('Giraffe', 'preferredNeckLengthUnit', (t) =>\n  t.field({\n    type: LengthUnit,\n    resolve: () => 'Feet' as const,\n  }),\n);\n\nbuilder.queryFields((t) => ({\n  giraffes: t.field({\n    description: 'multiple giraffes',\n    type: ['Giraffe'],\n    resolve: () => [{ name: 'Gina' }, { name: 'James' }],\n  }),\n  giraffeNames: t.field({\n    type: ['String'],\n    resolve: () => ['Gina', 'James'],\n  }),\n}));\n\nbuilder.queryFields((t) => ({\n  giraffeByName: t.field({\n    type: 'Giraffe',\n    args: {\n      name: t.arg.string({ required: true }),\n    },\n    resolve: (_root, args) => {\n      if (args.name !== 'Gina') {\n        throw new Error(`Unknown Giraffe ${args.name}`);\n      }\n\n      return { name: 'Gina' };\n    },\n  }),\n}));\n\nbuilder.queryFields((t) => ({\n  newestGiraffe: t.field({\n    type: 'Giraffe',\n    resolve: () => ({ name: 'James' }),\n  }),\n}));\n\nbuilder.objectField('Giraffe', 'nameLength', (t) =>\n  t.int({\n    resolve: (parent) => parent.name.length,\n  }),\n);\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Fields {\n  giraffe {\n    name\n    preferredNeckLengthUnit\n    nameLength\n  }\n  giraffes {\n    name\n  }\n  giraffeNames\n  giraffeByName(name: \"Gina\") {\n    name\n  }\n  newestGiraffe {\n    name\n    nameLength\n  }\n}\n",
+  "queries": [
+    {
+      "title": "01-Fields",
+      "query": "query Fields {\n  giraffe {\n    name\n    preferredNeckLengthUnit\n    nameLength\n  }\n  giraffes {\n    name\n  }\n  giraffeNames\n  giraffeByName(name: \"Gina\") {\n    name\n  }\n  newestGiraffe {\n    name\n    nameLength\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "02-Missing giraffe",
+      "query": "query MissingGiraffe {\n  giraffeByName(name: \"Lucy\") {\n    name\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

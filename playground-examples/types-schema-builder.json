@@ -1,0 +1,26 @@
+{
+  "id": "types-schema-builder",
+  "title": "SchemaBuilder and context",
+  "description": "Run requestId. Change requestId in the Context tab and run again; a TypeScript Context declaration does not supply a runtime value.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/schema-builder"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder<{\n  Context: { requestId: string };\n}>({});\n\nbuilder.queryType({\n  fields: (t) => ({\n    requestId: t.string({\n      resolve: (_parent, _args, context) => context.requestId,\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query SchemaBuilder {\n  requestId\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query SchemaBuilder {\n  requestId\n}\n",
+      "variables": "",
+      "context": "{\n  \"requestId\": \"request-123\"\n}\n"
+    }
+  ],
+  "defaultActiveFile": 0
+}

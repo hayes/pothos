@@ -1,0 +1,143 @@
+# Prisma plugin
+URL: /docs/plugins/prisma
+Prisma plugin docs for Pothos
+
+
+
+
+<Callout type="info" title="Prisma versions">
+  This plugin only supports Prisma ORM 7 (`prisma@^7`). For Prisma ORM 8, see the
+  [Prisma ORM 8 plugin](/docs/plugins/prisma-next).
+</Callout>
+
+The Prisma plugin defines GraphQL types from Prisma models and builds selections for the data
+requested by a GraphQL query. It supports relations, counts, type variants, and Relay nodes and
+connections. GraphQL fields can have different names and shapes from the underlying models.
+
+You can also [use Prisma with plain object refs](/docs/plugins/prisma/without-a-plugin).
+
+The guides also use a publishing API with public author pages, private drafts, and shared media.
+Its [local setup](/docs/plugins/prisma/setup#run-the-publishing-api) runs the real Prisma client against a temporary
+SQLite database. Prisma Utils filters and mutations reuse the same schema and data.
+
+## Example [#example]
+
+This example exposes users and their posts. See [Objects](/docs/plugins/prisma/objects), [Relations](/docs/plugins/prisma/relations), and [Connections](/docs/plugins/prisma/connections).
+Use the [builder setup](/docs/plugins/prisma/setup), including its `userId` context, and add the
+[Relay plugin](/docs/plugins/relay) for nodes and connections. The Prisma schema has User, Post, and Profile
+models with the fields and relations used below.
+
+```typescript
+// Create an object type based on a prisma model
+// without providing any custom type information
+builder.prismaObject('User', {
+  fields: (t) => ({
+    // expose fields from the database
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+    bio: t.string({
+      // the profile relation is nullable, so this field is too
+      nullable: true,
+      // automatically load the bio from the profile
+      // when this field is queried
+      select: {
+        profile: {
+          select: {
+            bio: true,
+          },
+        },
+      },
+      // user will be typed correctly to include the
+      // selected fields from above
+      resolve: (user) => user.profile?.bio,
+    }),
+    // Load posts as list field.
+    posts: t.relation('posts', {
+      args: {
+        oldestFirst: t.arg.boolean(),
+      },
+      // Define custom query options that are applied when
+      // loading the post relation
+      query: (args, context) => ({
+        orderBy: {
+          createdAt: args.oldestFirst ? 'asc' : 'desc',
+        },
+      }),
+    }),
+    // creates relay connection that handles pagination
+    // using prisma's built in cursor based pagination
+    postsConnection: t.relatedConnection('posts', {
+      cursor: 'id',
+    }),
+  }),
+});
+
+// Create a relay node based a prisma model
+builder.prismaNode('Post', {
+  id: { field: 'id' },
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    // Define a field that issues an optimized prisma query
+    me: t.prismaField({
+      type: 'User',
+      resolve: async (query, root, args, ctx, info) => {
+        return prisma.user.findUniqueOrThrow({
+          // the `query` argument will add in `include`s or `select`s to
+          // resolve as much of the request in a single query as possible
+          ...query,
+          where: { id: ctx.userId },
+        });
+      },
+    }),
+  }),
+});
+```
+
+Given this schema, you would be able to resolve a query like the following with a single prisma
+query (which will still result in a few optimized SQL queries).
+
+```graphql
+query {
+  me {
+    email
+    posts {
+      title
+      author {
+        id
+      }
+    }
+  }
+}
+```
+
+A query like
+
+```graphql
+query {
+  me {
+    email
+    posts {
+      title
+      author {
+        id
+      }
+    }
+    oldPosts: posts(oldestFirst: true) {
+      title
+      author {
+        id
+      }
+    }
+  }
+}
+```
+
+Will result in 2 calls to prisma, one to resolve everything except `oldPosts`, and a second to
+resolve everything inside `oldPosts`. Prisma can only resolve each relation once in a single query,
+so we need a separate query to handle the second `posts` relation.

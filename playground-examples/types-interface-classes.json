@@ -1,0 +1,25 @@
+{
+  "id": "types-interface-classes",
+  "title": "Interfaces with existing classes",
+  "description": "Run the animals query. Both object types use instanceof checks and return class instances; changing a resolver to return a plain object makes the check fail.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/interfaces"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\n\nclass Animal {\n  constructor(public diet: string) {}\n}\n\nclass Giraffe extends Animal {\n  constructor(public heightInMeters: number) {\n    super('herbivore');\n  }\n}\n\nclass Lion extends Animal {\n  constructor(public hasMane: boolean) {\n    super('carnivore');\n  }\n}\n\nbuilder.interfaceType(Animal, {\n  name: 'Animal',\n  fields: (t) => ({ diet: t.exposeString('diet') }),\n});\n\nbuilder.objectType(Giraffe, {\n  name: 'Giraffe',\n  interfaces: [Animal],\n  isTypeOf: (value) => value instanceof Giraffe,\n  fields: (t) => ({ height: t.exposeFloat('heightInMeters') }),\n});\n\nbuilder.objectType(Lion, {\n  name: 'Lion',\n  interfaces: [Animal],\n  isTypeOf: (value) => value instanceof Lion,\n  fields: (t) => ({ hasMane: t.exposeBoolean('hasMane') }),\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    animals: t.field({\n      type: [Animal],\n      resolve: () => [new Giraffe(5.2), new Lion(true)],\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query InterfaceClasses {\n  animals {\n    __typename\n    diet\n    ... on Giraffe {\n      height\n    }\n    ... on Lion {\n      hasMane\n    }\n  }\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query InterfaceClasses {\n  animals {\n    __typename\n    diet\n    ... on Giraffe {\n      height\n    }\n    ... on Lion {\n      hasMane\n    }\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "id": "types-nullability",
+  "title": "Default nullability",
+  "description": "Run the valid request, then Missing name. Add title: \"Dr\" to the valid input. Inspect schema.graphql for required fields. Make the nickname resolver throw an Error: only nickname becomes null. Remove nullable: true and run again to see data become null. Reset example restores the resolver.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/changing-default-nullability"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder<{\n  DefaultFieldNullability: false;\n  DefaultInputFieldRequiredness: true;\n}>({\n  defaultFieldNullability: false,\n  defaultInputFieldRequiredness: true,\n});\n\nconst GreetingInput = builder.inputType('GreetingInput', {\n  fields: (t) => ({\n    name: t.string(),\n    title: t.string({ required: false }),\n  }),\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    greeting: t.string({\n      args: { input: t.arg({ type: GreetingInput }) },\n      resolve: (_parent, { input }) =>\n        `Hello, ${input.title ? `${input.title} ` : ''}${input.name}!`,\n    }),\n    nickname: t.string({ nullable: true, resolve: () => null }),\n    names: t.stringList({ resolve: () => ['Ada'] }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Nullability {\n  greeting(input: { name: \"Ada\" })\n  names\n  nickname\n}\n",
+  "queries": [
+    {
+      "title": "01-query",
+      "query": "query Nullability {\n  greeting(input: { name: \"Ada\" })\n  names\n  nickname\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "02-missing-name",
+      "query": "query Nullability {\n  greeting(input: {})\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

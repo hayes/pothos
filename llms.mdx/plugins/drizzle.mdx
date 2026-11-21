@@ -1,0 +1,68 @@
+# Drizzle plugin
+URL: /docs/plugins/drizzle
+A plugin to support efficient queries through drizzles relational query builder API
+
+
+
+
+<Callout type="warn">
+  This plugin uses drizzle's [relational query builder v2](https://orm.drizzle.team/docs/rqb-v2),
+  which ships in `drizzle-orm` 1.0. That release is still a release candidate, and npm's `latest`
+  tag is the 0.x line, so install drizzle with the `rc` tag. Its API can still change before 1.0 is
+  final.
+
+  If you are upgrading from an older version of this plugin, read drizzle's [relations v1 to v2
+  guide](https://orm.drizzle.team/docs/relations-v1-v2), then this package's changelog for the
+  Pothos specific changes.
+</Callout>
+
+The Drizzle plugin maps database tables to GraphQL types and plans database queries from the
+fields a client selects. It supports relations, computed fields, and Relay nodes and connections.
+
+The examples share a small author-and-post schema. The
+[publishing playground](/playground?example=plugin-drizzle) includes its database definitions
+and initialization, and executes queries against SQLite in the browser.
+
+## Getting started [#getting-started]
+
+[Setup](/docs/plugins/drizzle/setup) connects your Drizzle client to Pothos.
+[Objects](/docs/plugins/drizzle/objects) covers type definitions and fields such as this lookup:
+
+```typescript playground example="plugin-drizzle"
+builder.queryType({
+  fields: (t) => ({
+    author: t.drizzleField({
+      type: 'users',
+      nullable: true,
+      args: { id: t.arg.int({ required: true }) },
+      resolve: (query, _root, args) => {
+        return db.query.users.findFirst(
+          query({
+            where: { id: args.id },
+          }),
+        );
+      },
+    }),
+  }),
+});
+```
+
+```graphql
+query AuthorPage {
+  author(id: 1) {
+    fullName
+    posts {
+      title
+    }
+  }
+}
+```
+
+The resolver passes Pothos's selection plan to Drizzle, loading the requested posts with their
+author. Adding GraphQL fields does not require rewriting this root resolver.
+
+[Relations](/docs/plugins/drizzle/relations) covers filtering and counts; [Selections](/docs/plugins/drizzle/selections) explains computed
+fields and profiles; [Connections](/docs/plugins/drizzle/connections) handles pagination. [Variants](/docs/plugins/drizzle/variants) and
+[Interfaces](/docs/plugins/drizzle/interfaces) keep private account data separate from public authors. For more
+specialized schemas, [Connection helpers](/docs/plugins/drizzle/connection-helpers) and [Async selections](/docs/plugins/drizzle/async-selections)
+cover custom pagination and asynchronous planning.

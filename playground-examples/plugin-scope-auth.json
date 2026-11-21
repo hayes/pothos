@@ -1,0 +1,114 @@
+{
+  "id": "plugin-scope-auth",
+  "title": "Request permissions and protected writes",
+  "description": "Edit permissions in Context and compare signed-out and reader operations. Featured-article grants allow a different path than direct node reads; the private policy also requires login. Run writes and reads in order. Reset restores data. Context is fixture data.",
+  "category": "plugins",
+  "relatedDocs": [
+    "/docs/plugins/scope-auth",
+    "/docs/plugins/scope-auth/relay-nodes"
+  ],
+  "variants": [
+    {
+      "id": "field-permissions",
+      "title": "Field permissions and grants",
+      "default": true
+    },
+    {
+      "id": "private-nodes",
+      "title": "Private node policy"
+    }
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import { builder } from './builder';\nimport './nodes';\n\nconst article = { title: 'Getting started', writes: 0 };\n\nbuilder.queryType({\n  fields: (t) => ({\n    message: t.string({ authScopes: { loggedIn: true }, resolve: () => 'hi' }),\n    article: t.string({\n      authScopes: { $all: { loggedIn: true, permission: 'readArticle' } },\n      resolve: () => article.title,\n    }),\n    editPreview: t.string({\n      authScopes: { $all: { loggedIn: true, permission: 'editArticle' } },\n      resolve: () => 'You can edit this article',\n    }),\n    // Public fixture counters make skipped resolver effects observable.\n    savedTitle: t.string({ resolve: () => article.title }),\n    writes: t.int({ resolve: () => article.writes }),\n  }),\n});\nbuilder.mutationType({\n  fields: (t) => ({\n    renameArticle: t.string({\n      authScopes: { $all: { loggedIn: true, permission: 'editArticle' } },\n      args: { title: t.arg.string({ required: true }) },\n      resolve: (_parent, { title }) => {\n        article.writes += 1;\n        article.title = title;\n        return article.title;\n      },\n    }),\n  }),\n});\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "builder.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport RelayPlugin from '@pothos/plugin-relay';\nimport ScopeAuthPlugin from '@pothos/plugin-scope-auth';\n\ntype Permission = 'readArticle' | 'editArticle';\ntype Context = { user: { id: string; permissions: Permission[] } | null };\n\nexport const builder = new SchemaBuilder<{\n  Context: Context;\n  AuthScopes: { loggedIn: boolean; permission: Permission };\n}>({\n  plugins: [ScopeAuthPlugin, RelayPlugin],\n  scopeAuth: {\n    authScopes: (context) => ({\n      loggedIn: !!context.user,\n      permission: (permission) => context.user?.permissions.includes(permission) ?? false,\n    }),\n    unauthorizedError: () => new Error('Not authorized'),\n  },\n});\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "nodes.ts",
+      "content": "import { builder } from './builder';\n\ntype Article = { id: string; title: string };\nconst articles: Article[] = [{ id: '1', title: 'A field guide to GraphQL' }];\n\nconst ArticleNode = builder.objectRef<Article>('Article');\n\nbuilder.node(ArticleNode, {\n  id: { resolve: (article: Article) => article.id },\n  loadOne: (id) => {\n    return articles.find((article) => article.id === id) ?? null;\n  },\n  authScopes: {\n    $any: {\n      permission: 'readArticle',\n      $granted: 'readFeaturedArticle',\n    },\n  },\n  fields: (t) => ({\n    title: t.exposeString('title'),\n  }),\n});\n\nbuilder.queryField('featuredArticle', (t) =>\n  t.field({\n    type: ArticleNode,\n    nullable: true,\n    grantScopes: ['readFeaturedArticle'],\n    resolve: () => {\n      return articles[0];\n    },\n  }),\n);\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Access {\n  message\n  article\n  editPreview\n}\n",
+  "queries": [
+    {
+      "title": "01-signed-out",
+      "query": "query Access {\n  message\n  article\n  editPreview\n}\n",
+      "variables": "",
+      "context": "{\n  \"user\": null\n}\n"
+    },
+    {
+      "title": "02-reader",
+      "query": "query Access {\n  message\n  article\n  editPreview\n}\n",
+      "variables": "",
+      "context": "{\n  \"user\": {\n    \"id\": \"reader\",\n    \"permissions\": [\"readArticle\"]\n  }\n}\n"
+    },
+    {
+      "title": "03-editor",
+      "query": "query Access {\n  message\n  article\n  editPreview\n}\n",
+      "variables": "",
+      "context": "{\n  \"user\": {\n    \"id\": \"editor\",\n    \"permissions\": [\"readArticle\", \"editArticle\"]\n  }\n}\n"
+    },
+    {
+      "title": "04-rejected-write",
+      "query": "mutation Rename {\n  renameArticle(title: \"Rejected change\")\n}\n",
+      "variables": "",
+      "context": "{\n  \"user\": {\n    \"id\": \"reader\",\n    \"permissions\": [\"readArticle\"]\n  }\n}\n"
+    },
+    {
+      "title": "05-after-rejection",
+      "query": "query State {\n  savedTitle\n  writes\n}\n",
+      "variables": "",
+      "context": "{\n  \"user\": null\n}\n"
+    },
+    {
+      "title": "06-permitted-write",
+      "query": "mutation Rename {\n  renameArticle(title: \"Updated guide\")\n}\n",
+      "variables": "",
+      "context": "{\n  \"user\": {\n    \"id\": \"editor\",\n    \"permissions\": [\"readArticle\", \"editArticle\"]\n  }\n}\n"
+    },
+    {
+      "title": "07-after-write",
+      "query": "query State {\n  savedTitle\n  writes\n}\n",
+      "variables": "",
+      "context": "{\n  \"user\": null\n}\n"
+    },
+    {
+      "title": "08-node-paths",
+      "query": "query ArticleAccessPaths {\n  featuredArticle {\n    id\n    title\n  }\n  node(id: \"QXJ0aWNsZTox\") {\n    ... on Article {\n      id\n      title\n    }\n  }\n}\n",
+      "variables": "",
+      "context": "{ \"user\": null }\n"
+    },
+    {
+      "title": "09-reader-node",
+      "query": "query ReaderRefetch {\n  node(id: \"QXJ0aWNsZTox\") {\n    ... on Article {\n      id\n      title\n    }\n  }\n}\n",
+      "variables": "",
+      "context": "{ \"user\": { \"id\": \"reader-1\", \"permissions\": [\"readArticle\"] } }\n"
+    },
+    {
+      "title": "10-node-typename",
+      "query": "query NodeExistence {\n  node(id: \"QXJ0aWNsZTox\") {\n    __typename\n  }\n}\n",
+      "variables": "",
+      "context": "{ \"user\": null }\n"
+    },
+    {
+      "title": "11-node-paths-reversed",
+      "query": "query ReversedArticleAccessPaths {\n  node(id: \"QXJ0aWNsZTox\") {\n    ... on Article {\n      id\n      title\n    }\n  }\n  featuredArticle {\n    id\n    title\n  }\n}\n",
+      "variables": "",
+      "context": "{ \"user\": null }\n"
+    },
+    {
+      "title": "12-mixed-nodes",
+      "query": "query MixedNodes {\n  nodes(ids: [\"QXJ0aWNsZTox\", \"QXJ0aWNsZTo5OTk=\"]) {\n    ... on Article {\n      title\n    }\n  }\n}\n",
+      "variables": "",
+      "context": "{ \"user\": null }\n"
+    }
+  ],
+  "defaultActiveFile": 0
+}

@@ -1,0 +1,25 @@
+{
+  "id": "architecture-printing",
+  "title": "Printing a schema",
+  "description": "Run the hello query, then open schema.graphql to inspect the SDL. Add a description to the hello field options and see it appear in the SDL.",
+  "category": "patterns",
+  "relatedDocs": [
+    "/docs/guide/printing-schemas"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\n\nbuilder.queryType({\n  fields: (t) => ({\n    hello: t.string({\n      args: {\n        name: t.arg.string(),\n      },\n      resolve: (_parent, { name }) => `hello, ${name || 'World'}`,\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "{\n  hello(name: \"Alex\")\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "{\n  hello(name: \"Alex\")\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ]
+}

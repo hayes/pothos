@@ -1,0 +1,54 @@
+{
+  "id": "playground-tour-step-2",
+  "title": "Explore a schema",
+  "description": "Run Tall giraffes, then All giraffes. Change minimumHeight in Variables to filter the herd. Open schema.graphql to inspect the field and argument types.",
+  "category": "core",
+  "order": 1,
+  "relatedDocs": [
+    "/docs/guide/playground"
+  ],
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "Run and edit",
+      "description": "Run the greeting query. Change Sam in the query to your name and run again. In schema.ts, change Hello to Welcome to edit the response.",
+      "order": 1,
+      "defaultActiveFile": "schema.ts"
+    },
+    {
+      "id": "step-2",
+      "title": "Explore a schema",
+      "description": "Run Tall giraffes, then All giraffes. Change minimumHeight in Variables to filter the herd. Open schema.graphql to inspect the field and argument types.",
+      "order": 2,
+      "defaultActiveFile": "schema.ts"
+    }
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport { type Giraffe as GiraffeModel, giraffes } from './models/giraffe';\n\nconst builder = new SchemaBuilder({});\n\nconst Giraffe = builder.objectRef<GiraffeModel>('Giraffe');\nGiraffe.implement({\n  fields: (t) => ({\n    name: t.exposeString('name', { nullable: false }),\n    height: t.exposeFloat('height', { nullable: false }),\n  }),\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    giraffes: t.field({\n      type: [Giraffe],\n      nullable: false,\n      args: { minimumHeight: t.arg.float({ required: true }) },\n      resolve: (_parent, args) =>\n        giraffes.filter((giraffe) => giraffe.height >= args.minimumHeight),\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "models/giraffe.ts",
+      "content": "export interface Giraffe {\n  name: string;\n  height: number;\n}\n\nexport const giraffes: Giraffe[] = [\n  { name: 'James', height: 5.2 },\n  { name: 'Lucy', height: 4.3 },\n];\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Visit($minimumHeight: Float!) {\n  giraffes(minimumHeight: $minimumHeight) {\n    name\n    height\n  }\n}\n",
+  "queries": [
+    {
+      "title": "01-Tall giraffes",
+      "query": "query Visit($minimumHeight: Float!) {\n  giraffes(minimumHeight: $minimumHeight) {\n    name\n    height\n  }\n}\n",
+      "variables": "{\n  \"minimumHeight\": 5\n}\n",
+      "context": ""
+    },
+    {
+      "title": "02-All giraffes",
+      "query": "query Visit($minimumHeight: Float!) {\n  giraffes(minimumHeight: $minimumHeight) {\n    name\n    height\n  }\n}\n",
+      "variables": "{\n  \"minimumHeight\": 0\n}\n",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

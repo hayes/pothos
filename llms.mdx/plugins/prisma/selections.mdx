@@ -1,0 +1,127 @@
+# Selections
+URL: /docs/plugins/prisma/selections
+how to use custom includes and selections to optimize your prisma queries
+
+
+## Includes on types [#includes-on-types]
+
+In some cases, you may want to always pre-load certain relations. This can be helpful for defining
+fields directly on type where the underlying data may come from a related table.
+
+```typescript
+builder.prismaObject('User', {
+  // This will always include the profile when a user object is loaded.  Deeply nested relations can
+  // also be included this way.
+  include: {
+    profile: true,
+  },
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+    bio: t.string({
+      // The profile relation is nullable, so this field is too.
+      nullable: true,
+      // The profile relation will always be loaded, and user will now be typed to include the
+      // profile field so you can return the bio from the nested profile relation.
+      resolve: (user) => user.profile?.bio,
+    }),
+  }),
+});
+```
+
+## Select mode for types [#select-mode-for-types]
+
+By default, the prisma plugin will use `include` when including relations, or generating fallback
+queries. This means we are always loading all columns of a table when loading it in a
+`t.prismaField` or a `t.relation`. This is usually what we want, but in some cases, you may want to
+select specific columns instead. This can be useful if you have tables with either a very large
+number of columns, or specific columns with large payloads you want to avoid loading.
+
+To do this, you can add a `select` instead of an include to your `prismaObject`:
+
+```typescript
+builder.prismaObject('User', {
+  select: {
+    id: true,
+  },
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+  }),
+});
+```
+
+The `t.expose*` and `t.relation` methods will all automatically add selections for the exposed
+fields when those fields are queried, ensuring that only the requested columns will be loaded from the
+database.
+
+In addition to the `t.expose` and `t.relation`, you can also add custom selections to other fields:
+
+```typescript
+builder.prismaObject('User', {
+  select: {
+    id: true,
+  },
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+    bio: t.string({
+      nullable: true,
+      // This will select user.profile.bio when the `bio` field is queried
+      select: {
+        profile: {
+          select: {
+            bio: true,
+          },
+        },
+      },
+      resolve: (user) => user.profile?.bio,
+    }),
+  }),
+});
+```
+
+A field-level `select` always adds to the row of the model the field is defined on, whatever type
+the field returns. A `select` on a `t.prismaField` defined on `User` adds columns to the user its
+resolver receives as the parent, not to the model the field returns.
+
+## Using arguments or context in your selections [#using-arguments-or-context-in-your-selections]
+
+This field selects the first comment created after the supplied date, or returns null when none
+exists. It assumes a registered `Date` scalar accepting JavaScript dates:
+
+```typescript
+const Post = builder.prismaObject('Post', {
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    commentFromDate: t.string({
+      nullable: true,
+      args: {
+        date: t.arg({ type: 'Date', required: true }),
+      },
+      select: (args) => ({
+        comments: {
+          take: 1,
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          where: {
+            createdAt: {
+              gt: args.date,
+            },
+          },
+        },
+      }),
+      resolve: (post) => post.comments[0]?.content,
+    }),
+  }),
+});
+```
+
+## Only load a profile when requested [#only-load-a-profile-when-requested]
+
+The [public author type](./relations#published-posts-and-profiles) keeps its default selection
+small. Its `bio` field declares the profile relation it needs, so a query for the author's name
+alone does not load a profile. Adding `bio` adds that relation to the database query; the resolver
+then reads the selected row. A nullable profile still produces a nullable biography.
+
+This distinction matters for computed fields: a resolver accessing related data must declare that
+data in its selection, even when the GraphQL field itself is just a string.

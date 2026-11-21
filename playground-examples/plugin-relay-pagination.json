@@ -1,0 +1,50 @@
+{
+  "id": "plugin-relay-pagination",
+  "title": "Page through a deterministic connection",
+  "description": "Run the first page, then copy endCursor into the next page Variables. Compare backward, empty and invalid-size operations. Change first from 2 to 1 and follow the new endCursor: the next page starts at Grace. Reset example restores the queries and variables.",
+  "category": "plugins",
+  "relatedDocs": [
+    "/docs/plugins/relay"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport RelayPlugin, { resolveArrayConnection } from '@pothos/plugin-relay';\n\nconst builder = new SchemaBuilder({ plugins: [RelayPlugin], relay: {} });\nconst users = [\n  { id: '1', name: 'Ada' },\n  { id: '2', name: 'Grace' },\n  { id: '3', name: 'Katherine' },\n  { id: '4', name: 'Dorothy' },\n];\nconst User = builder.objectRef<(typeof users)[number]>('User').implement({\n  fields: (t) => ({ id: t.exposeID('id'), name: t.exposeString('name') }),\n});\n\n\nbuilder.queryType({\n  fields: (t) => ({\n    users: t.connection({\n      type: User,\n      resolve: (_parent, args) => resolveArrayConnection({ args }, users),\n    }),\n  }),\n});\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query FirstPage($first: Int!) {\n  users(first: $first) {\n    edges {\n      cursor\n      node {\n        id\n        name\n      }\n    }\n    pageInfo {\n      startCursor\n      endCursor\n      hasNextPage\n      hasPreviousPage\n    }\n  }\n}\n",
+  "queries": [
+    {
+      "title": "01-first-page",
+      "query": "query FirstPage($first: Int!) {\n  users(first: $first) {\n    edges {\n      cursor\n      node {\n        id\n        name\n      }\n    }\n    pageInfo {\n      startCursor\n      endCursor\n      hasNextPage\n      hasPreviousPage\n    }\n  }\n}\n",
+      "variables": "{ \"first\": 2 }\n",
+      "context": ""
+    },
+    {
+      "title": "02-next-page",
+      "query": "query NextPage($after: String!) {\n  users(first: 2, after: $after) {\n    edges {\n      cursor\n      node {\n        id\n        name\n      }\n    }\n    pageInfo {\n      startCursor\n      endCursor\n      hasNextPage\n      hasPreviousPage\n    }\n  }\n}\n",
+      "variables": "{ \"after\": \"T2Zmc2V0Q29ubmVjdGlvbjox\" }\n",
+      "context": ""
+    },
+    {
+      "title": "03-backward",
+      "query": "query Backward {\n  users(last: 2, before: \"T2Zmc2V0Q29ubmVjdGlvbjoz\") {\n    edges {\n      node {\n        id\n        name\n      }\n    }\n    pageInfo {\n      hasNextPage\n      hasPreviousPage\n    }\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "04-empty",
+      "query": "query Empty {\n  users(first: 2, after: \"T2Zmc2V0Q29ubmVjdGlvbjoz\") {\n    edges {\n      node {\n        id\n      }\n    }\n    pageInfo {\n      startCursor\n      endCursor\n      hasNextPage\n    }\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "05-invalid-size",
+      "query": "query InvalidSize {\n  users(first: -1) {\n    edges {\n      node {\n        id\n      }\n    }\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

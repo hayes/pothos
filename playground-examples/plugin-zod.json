@@ -1,0 +1,44 @@
+{
+  "id": "plugin-zod",
+  "title": "Maintain legacy Zod validation",
+  "description": "Run valid, invalid-email, oversized-roster, and saved-email operations in order; rejected mutations leave both saved addresses unchanged. Change maxLength from 2 to 1 to reject the valid roster. Reset clears saved data.",
+  "category": "plugins",
+  "relatedDocs": [
+    "/docs/plugins/zod"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport ZodPlugin from '@pothos/plugin-zod';\nimport type { ZodError } from 'zod';\n\nconst builder = new SchemaBuilder({\n  plugins: [ZodPlugin],\n  zod: {\n    validationError: (error: ZodError) => error.issues.map((issue) => issue.message).join('; '),\n  },\n});\nlet emails: string[] = [];\nbuilder.queryType({ fields: (t) => ({ savedEmails: t.stringList({ resolve: () => emails }) }) });\nbuilder.mutationType({\n  fields: (t) => ({\n    setRoster: t.stringList({\n      args: {\n        emails: t.arg.stringList({\n          required: true,\n          validate: {\n            maxLength: [2, { message: 'Roster is too large' }],\n            items: { email: [true, { message: 'Enter a valid email' }] },\n          },\n        }),\n      },\n      resolve: (_, args) => {\n        emails = args.emails;\n        return emails;\n      },\n    }),\n  }),\n});\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "mutation SetRoster {\n  setRoster(emails: [\"leia@example.com\", \"luke@example.com\"])\n}\n",
+  "queries": [
+    {
+      "title": "01-valid",
+      "query": "mutation SetRoster {\n  setRoster(emails: [\"leia@example.com\", \"luke@example.com\"])\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "02-invalid-item",
+      "query": "mutation SetRoster {\n  setRoster(emails: [\"invalid\"])\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "03-too-many",
+      "query": "mutation SetRoster {\n  setRoster(emails: [\"a@example.com\", \"b@example.com\", \"c@example.com\"])\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "04-no-rejected-write",
+      "query": "query SavedEmails {\n  savedEmails\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

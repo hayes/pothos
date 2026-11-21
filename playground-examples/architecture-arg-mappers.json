@@ -1,0 +1,49 @@
+{
+  "id": "architecture-arg-mappers",
+  "title": "Argument mapping and error boundaries",
+  "description": "Run Valid to see a trimmed name. Blank throws in the first mapper; Reserved rejects in the async mapper. Both return BAD_USER_INPUT. Resolver failure keeps its original error without that code.",
+  "category": "patterns",
+  "relatedDocs": [
+    "/docs/guide/writing-plugins"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport { pluginName } from './plugin';\n\nconst builder = new SchemaBuilder({ plugins: [pluginName] });\n\nbuilder.queryType({\n  fields: (t) => ({\n    greeting: t.string({\n      extensions: { normalizeName: true },\n      args: { name: t.arg.string({ required: true }) },\n      resolve: (_parent, { name }) => {\n        if (name === 'broken') {\n          throw new Error('Greeting unavailable');\n        }\n        return `Hello, ${name}!`;\n      },\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "plugin.ts",
+      "content": "import SchemaBuilder, {\n  BasePlugin,\n  type PothosOutputFieldConfig,\n  type SchemaTypes,\n} from '@pothos/core';\nimport { GraphQLError, type GraphQLFieldResolver } from 'graphql';\n\ndeclare global {\n  namespace PothosSchemaTypes {\n    interface Plugins<Types extends SchemaTypes> {\n      architectureArgMappers: NameInputPlugin<Types>;\n    }\n  }\n}\n\nclass NameInputError extends Error {}\n\nexport class NameInputPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {\n  override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {\n    if (!fieldConfig.extensions?.normalizeName) {\n      return fieldConfig;\n    }\n\n    return {\n      ...fieldConfig,\n      argMappers: [\n        ...fieldConfig.argMappers,\n        (args: Record<string, unknown>) => {\n          if (typeof args.name !== 'string' || !args.name.trim()) {\n            throw new NameInputError('Name must not be blank');\n          }\n          return { ...args, name: args.name.trim() };\n        },\n        async (args: Record<string, unknown>) => {\n          // A real plugin could await a lookup or asynchronous validator here.\n          if (args.name === 'reserved') {\n            throw new NameInputError('Name is reserved');\n          }\n          return args;\n        },\n      ],\n    };\n  }\n\n  override wrapArgMappers(\n    resolver: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,\n    fieldConfig: PothosOutputFieldConfig<Types>,\n  ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {\n    if (!resolver || !fieldConfig.extensions?.normalizeName) {\n      return resolver;\n    }\n\n    return async (parent, args, context, info) => {\n      try {\n        return await resolver(parent, args, context, info);\n      } catch (error) {\n        if (error instanceof NameInputError) {\n          throw new GraphQLError(error.message, { extensions: { code: 'BAD_USER_INPUT' } });\n        }\n        throw error;\n      }\n    };\n  }\n}\n\nexport const pluginName = 'architectureArgMappers';\nSchemaBuilder.registerPlugin(pluginName, NameInputPlugin);\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Valid {\n  greeting(name: \"  Gina  \")\n}\n",
+  "queries": [
+    {
+      "title": "01-Valid",
+      "query": "query Valid {\n  greeting(name: \"  Gina  \")\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "02-Blank",
+      "query": "query Blank {\n  greeting(name: \"   \")\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "03-Reserved",
+      "query": "query Reserved {\n  greeting(name: \" reserved \")\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "04-Resolver-failure",
+      "query": "query ResolverFailure {\n  greeting(name: \"broken\")\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 1
+}

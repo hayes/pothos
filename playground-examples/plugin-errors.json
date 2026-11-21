@@ -1,0 +1,38 @@
+{
+  "id": "plugin-errors",
+  "title": "Expected and unexpected failures",
+  "description": "Run success, handled failure, and unexpected failure to compare a success member, NameTooShort details, and a GraphQL error. Change Li to Leia in the handled-failure operation to get success. Reset restores the example.",
+  "category": "plugins",
+  "relatedDocs": [
+    "/docs/plugins/errors"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport ErrorsPlugin from '@pothos/plugin-errors';\n\nconst builder = new SchemaBuilder({ plugins: [ErrorsPlugin] });\nclass NameTooShort extends Error {\n  minimum = 3;\n  constructor() {\n    super('Use at least three characters');\n  }\n}\nbuilder.objectType(NameTooShort, {\n  name: 'NameTooShort',\n  fields: (t) => ({ message: t.exposeString('message'), minimum: t.exposeInt('minimum') }),\n});\nbuilder.queryType({\n  fields: (t) => ({\n    greeting: t.string({\n      args: { name: t.arg.string({ required: true }), simulateFailure: t.arg.boolean() },\n      errors: { types: [NameTooShort] },\n      resolve: (_, { name, simulateFailure }) => {\n        if (simulateFailure) {\n          throw new Error('Service unavailable');\n        }\n        if (name.length < 3) {\n          throw new NameTooShort();\n        }\n        return `Hello, ${name}`;\n      },\n    }),\n  }),\n});\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Greeting {\n  greeting(name: \"Leia\") {\n    __typename\n    ... on QueryGreetingSuccess {\n      data\n    }\n    ... on NameTooShort {\n      message\n      minimum\n    }\n  }\n}\n",
+  "queries": [
+    {
+      "title": "01-success",
+      "query": "query Greeting {\n  greeting(name: \"Leia\") {\n    __typename\n    ... on QueryGreetingSuccess {\n      data\n    }\n    ... on NameTooShort {\n      message\n      minimum\n    }\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "02-handled",
+      "query": "query Greeting {\n  greeting(name: \"Li\") {\n    __typename\n    ... on QueryGreetingSuccess {\n      data\n    }\n    ... on NameTooShort {\n      message\n      minimum\n    }\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "03-unexpected",
+      "query": "query Greeting {\n  greeting(name: \"Leia\", simulateFailure: true) {\n    __typename\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

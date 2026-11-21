@@ -1,0 +1,26 @@
+{
+  "id": "plugin-add-graphql-ref",
+  "title": "Customize an imported ref",
+  "description": "Run RenamedField to read displayName. The imported name field was removed; try querying it to see a validation error. Change the resolver name to Luke and rerun with displayName. Reset example restores the original source and query.",
+  "category": "plugins",
+  "relatedDocs": [
+    "/docs/plugins/add-graphql"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport AddGraphQLPlugin from '@pothos/plugin-add-graphql';\nimport { GraphQLObjectType, GraphQLString } from 'graphql';\n\ntype User = { name: string };\n\nconst ExistingUser = new GraphQLObjectType<User>({\n  name: 'User',\n  fields: { name: { type: GraphQLString } },\n});\n\nconst builder = new SchemaBuilder({ plugins: [AddGraphQLPlugin] });\n\nconst ImportedUser = builder.addGraphQLObject<User>(ExistingUser, {\n  name: 'ImportedUser',\n  fields: (t) => ({\n    name: null,\n    displayName: t.exposeString('name'),\n  }),\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    user: t.field({ type: ImportedUser, resolve: () => ({ name: 'Leia' }) }),\n  }),\n});\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query RenamedField {\n  user {\n    displayName\n  }\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query RenamedField {\n  user {\n    displayName\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

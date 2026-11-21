@@ -1,0 +1,35 @@
+{
+  "id": "architecture-writing-plugin",
+  "title": "Writing a resolver plugin",
+  "description": "Run the query and open Console: the plugin logs each field and counts two resolutions. Run again to see a new request start at one. Change logLabel in schema.ts to label the messages.",
+  "category": "patterns",
+  "relatedDocs": [
+    "/docs/guide/writing-plugins"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport { pluginName } from './plugin';\n\nconst builder = new SchemaBuilder({\n  plugins: [pluginName],\n  logLabel: 'Request',\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    hello: t.string({ resolve: () => 'Hello' }),\n    goodbye: t.string({ resolve: async () => 'Goodbye' }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "global-types.ts",
+      "content": "import type { SchemaTypes } from '@pothos/core';\nimport type { ObserverPlugin } from './plugin';\n\ndeclare global {\n  namespace PothosSchemaTypes {\n    interface Plugins<Types extends SchemaTypes> {\n      architectureObserver: ObserverPlugin<Types>;\n    }\n\n    interface SchemaBuilderOptions<Types extends SchemaTypes> {\n      logLabel?: string;\n    }\n  }\n}\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "plugin.ts",
+      "content": "import './global-types';\nimport SchemaBuilder, {\n  BasePlugin,\n  type PothosOutputFieldConfig,\n  type SchemaTypes,\n} from '@pothos/core';\nimport type { GraphQLFieldResolver } from 'graphql';\n\nexport class ObserverPlugin<Types extends SchemaTypes> extends BasePlugin<\n  Types,\n  { resolveCount: number }\n> {\n  createRequestData(_context: Types['Context']) {\n    return { resolveCount: 0 };\n  }\n\n  wrapResolve(\n    resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,\n    _fieldConfig: PothosOutputFieldConfig<Types>,\n  ): GraphQLFieldResolver<unknown, Types['Context'], object> {\n    return (parent, args, context, info) => {\n      const data = this.requestData(context);\n      data.resolveCount += 1;\n      console.log(\n        `${this.builder.options.logLabel}: ${info.parentType}.${info.fieldName} (${data.resolveCount})`,\n      );\n      return resolver(parent, args, context, info);\n    };\n  }\n}\n\nexport const pluginName = 'architectureObserver';\nSchemaBuilder.registerPlugin(pluginName, ObserverPlugin);\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "{\n  hello\n  goodbye\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "{\n  hello\n  goodbye\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "architecture-shared-inputs",
+  "title": "Sharing input fields",
+  "description": "Run the query, then change a reason in either input and compare the result.",
+  "category": "patterns",
+  "relatedDocs": [
+    "/docs/guide/patterns"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import type { InputFieldBuilder } from '@pothos/core';\nimport SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\n\ntype BuilderTypes = typeof builder.$inferSchemaTypes;\n\nfunction createInputFields(t: InputFieldBuilder<BuilderTypes, 'InputObject'>) {\n  return {\n    id: t.id({}),\n    reason: t.field({ type: 'String', required: false }),\n  };\n}\n\nconst FirstInput = builder.inputType('InputWithCommonFields1', {\n  fields: (t) => ({\n    ...createInputFields(t),\n  }),\n});\n\nconst SecondInput = builder.inputType('InputWithCommonFields2', {\n  fields: (t) => ({\n    ...createInputFields(t),\n  }),\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    reasons: t.string({\n      args: {\n        first: t.arg({ type: FirstInput, required: true }),\n        second: t.arg({ type: SecondInput, required: true }),\n      },\n      resolve: (_parent, args) =>\n        [args.first.reason, args.second.reason].filter(Boolean).join(', '),\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "{\n  reasons(first: { reason: \"first\" }, second: { reason: \"second\" })\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "{\n  reasons(first: { reason: \"first\" }, second: { reason: \"second\" })\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ]
+}

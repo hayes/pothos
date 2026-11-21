@@ -1,0 +1,26 @@
+{
+  "id": "foundations-field-nullability",
+  "title": "Field and list nullability",
+  "description": "Run the query and inspect schema.graphql: fields and the sparse list are non-null, while sparse list items can be null. Replace the null item with a string and run again.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/fields"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\n\nbuilder.queryType({\n  fields: (t) => ({\n    nonNullableField: t.field({\n      type: 'String',\n      nullable: false,\n      resolve: () => 'Gina',\n    }),\n    nonNullableString: t.string({\n      nullable: false,\n      resolve: () => 'Gina',\n    }),\n    nonNullableList: t.field({\n      type: ['String'],\n      nullable: false,\n      resolve: () => ['Gina', 'James'],\n    }),\n    sparseList: t.field({\n      type: ['String'],\n      nullable: {\n        list: false,\n        items: true,\n      },\n      resolve: () => [null],\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Nullability {\n  nonNullableField\n  nonNullableString\n  nonNullableList\n  sparseList\n}\n",
+  "queries": [
+    {
+      "title": "Nullability",
+      "query": "query Nullability {\n  nonNullableField\n  nonNullableString\n  nonNullableList\n  sparseList\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

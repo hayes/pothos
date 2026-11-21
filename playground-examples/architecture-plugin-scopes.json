@@ -1,0 +1,25 @@
+{
+  "id": "architecture-plugin-scopes",
+  "title": "Plugin scopes",
+  "description": "Run the query to compare allowed and denied scopes. Change the denied field scope from blocked to allowed and run again.",
+  "category": "patterns",
+  "relatedDocs": [
+    "/docs/guide/using-plugins"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport ScopeAuthPlugin from '@pothos/plugin-scope-auth';\n\nconst builder = new SchemaBuilder<{\n  AuthScopes: {\n    example: string;\n  };\n}>({\n  plugins: [ScopeAuthPlugin],\n  scopeAuth: {\n    authScopes: () => ({\n      example: (value) => value === 'allowed',\n    }),\n  },\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    allowed: t.string({ authScopes: { example: 'allowed' }, resolve: () => 'Allowed' }),\n    denied: t.string({ authScopes: { example: 'blocked' }, resolve: () => 'Denied' }),\n  }),\n});\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "{\n  allowed\n  denied\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "{\n  allowed\n  denied\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "architecture-client-types",
+  "title": "Schema for client generation",
+  "description": "Run the named UserPosts query. Add id to its post selection and run again before using the operation with your local Codegen configuration.",
+  "category": "patterns",
+  "relatedDocs": [
+    "/docs/guide/generating-client-types"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\nconst Post = builder.objectRef<{ id: string; title: string }>('Post');\nPost.implement({ fields: (t) => ({ id: t.exposeID('id'), title: t.exposeString('title') }) });\nconst User = builder.objectRef<{ id: string; name: string }>('User');\nUser.implement({\n  fields: (t) => ({\n    id: t.exposeID('id'),\n    name: t.exposeString('name'),\n    posts: t.field({ type: [Post], resolve: () => [{ id: 'post-1', title: 'First post' }] }),\n  }),\n});\nbuilder.queryType({\n  fields: (t) => ({ user: t.field({ type: User, resolve: () => ({ id: '1', name: 'Alex' }) }) }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query UserPosts {\n  user {\n    name\n    posts {\n      title\n    }\n  }\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query UserPosts {\n  user {\n    name\n    posts {\n      title\n    }\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ]
+}

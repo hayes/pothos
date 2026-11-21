@@ -1,0 +1,49 @@
+{
+  "id": "foundations-root-operations",
+  "title": "Query and mutation root fields",
+  "description": "Run Before, then Create, then After to observe the stored mutation. Change Morgan in Create and run again. Reset example restores the original James entry.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/queries-mutations-and-subscriptions"
+  ],
+  "variants": [
+    {
+      "id": "inline",
+      "title": "Fields on queryType",
+      "default": true
+    },
+    {
+      "id": "separate",
+      "title": "Separate field definitions"
+    }
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\ntype Giraffe = { name: string };\n\nconst builder = new SchemaBuilder({});\nconst giraffes: Giraffe[] = [{ name: 'James' }];\n\nconst GiraffeRef = builder.objectRef<Giraffe>('Giraffe').implement({\n  fields: (t) => ({\n    name: t.exposeString('name'),\n  }),\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    hello: t.string({\n      resolve: () => 'hello, world!',\n    }),\n    giraffes: t.field({\n      type: [GiraffeRef],\n      resolve: () => giraffes,\n    }),\n  }),\n});\n\nbuilder.mutationType({});\n\nbuilder.mutationField('createGiraffe', (t) =>\n  t.field({\n    type: GiraffeRef,\n    args: {\n      name: t.arg.string({ required: true }),\n    },\n    resolve: (_parent, args) => {\n      const giraffe = { name: args.name };\n      giraffes.push(giraffe);\n      return giraffe;\n    },\n  }),\n);\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query ReadGiraffes {\n  hello\n  giraffes {\n    name\n  }\n}\n",
+  "queries": [
+    {
+      "title": "01-Before",
+      "query": "query ReadGiraffes {\n  hello\n  giraffes {\n    name\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "02-Create",
+      "query": "mutation CreateGiraffe {\n  createGiraffe(name: \"Morgan\") {\n    name\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "03-After",
+      "query": "query ReadAgain {\n  giraffes {\n    name\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

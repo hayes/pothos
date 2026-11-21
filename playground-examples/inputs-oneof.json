@@ -1,0 +1,26 @@
+{
+  "id": "inputs-oneof",
+  "title": "OneOf input objects",
+  "description": "Run the lookup by ID, then replace by with {\"name\":\"Gina\"}. Try an empty object, both fields, or a null value to see OneOf coercion reject the input.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/inputs"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\n\nexport const GiraffeLookup = builder.inputType('GiraffeLookup', {\n  isOneOf: true,\n  fields: (t) => ({\n    id: t.id({ required: false }),\n    name: t.string({ required: false }),\n  }),\n});\n\nconst giraffes = [{ id: '1', name: 'Gina' }];\n\nbuilder.queryType({\n  fields: (t) => ({\n    giraffeName: t.string({\n      args: {\n        by: t.arg({ type: GiraffeLookup, required: true }),\n      },\n      resolve: (_root, { by }) => {\n        if (by.id !== undefined) {\n          return giraffes.find((giraffe) => giraffe.id === by.id)?.name;\n        }\n\n        return giraffes.find((giraffe) => giraffe.name === by.name)?.name;\n      },\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query FindGiraffe($by: GiraffeLookup!) {\n  giraffeName(by: $by)\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query FindGiraffe($by: GiraffeLookup!) {\n  giraffeName(by: $by)\n}\n",
+      "variables": "{ \"by\": { \"id\": \"1\" } }\n",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

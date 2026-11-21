@@ -1,0 +1,184 @@
+# Queries, Mutations and Subscriptions
+URL: /docs/guide/queries-mutations-and-subscriptions
+Guide for adding queries, mutations and subscriptions to your schema
+
+
+Queries, mutations, and subscriptions are fields on the schema's root types. Each root type has
+methods for defining the type, adding one field, and adding several fields.
+
+## Queries [#queries]
+
+Use `builder.queryType()` to define the `Query` type. This example returns plain backing data through
+an [object reference](./objects):
+
+```typescript playground example="foundations-root-operations"
+import SchemaBuilder from '@pothos/core';
+
+type Giraffe = { name: string };
+
+const builder = new SchemaBuilder({});
+const giraffes: Giraffe[] = [{ name: 'James' }];
+
+const GiraffeRef = builder.objectRef<Giraffe>('Giraffe').implement({
+  fields: (t) => ({
+    name: t.exposeString('name'),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    hello: t.string({
+      resolve: () => 'hello, world!',
+    }),
+    giraffes: t.field({
+      type: [GiraffeRef],
+      resolve: () => giraffes,
+    }),
+  }),
+});
+```
+
+Define the `Query` type once. To split its fields across files, use `builder.queryField()` or
+`builder.queryFields()`. The following is an alternative to the `builder.queryType()` call above,
+using the same builder, object reference, and data:
+
+```typescript playground example="foundations-root-operations-variant-separate"
+builder.queryType({});
+
+builder.queryField('hello', (t) =>
+  t.string({
+    resolve: () => 'hello, world!',
+  }),
+);
+
+builder.queryFields((t) => ({
+  giraffes: t.field({
+    type: [GiraffeRef],
+    resolve: () => giraffes,
+  }),
+}));
+```
+
+## Mutations [#mutations]
+
+Use `builder.mutationType()`, `builder.mutationField()`, and `builder.mutationFields()` in the same
+way. Continuing the query example, this mutation adds a giraffe to the array returned by `giraffes`:
+
+```typescript playground example="foundations-root-operations"
+builder.mutationType({});
+
+builder.mutationField('createGiraffe', (t) =>
+  t.field({
+    type: GiraffeRef,
+    args: {
+      name: t.arg.string({ required: true }),
+    },
+    resolve: (_parent, args) => {
+      const giraffe = { name: args.name };
+      giraffes.push(giraffe);
+      return giraffe;
+    },
+  }),
+);
+
+export const schema = builder.toSchema();
+```
+
+The required argument provides a `string` for the backing model's `name`. This example stores data
+in memory; an application can perform its database write in the resolver instead.
+
+```graphql playground example="foundations-root-operations"
+mutation CreateGiraffe {
+  createGiraffe(name: "Morgan") {
+    name
+  }
+}
+
+```
+
+After this mutation, `{ giraffes { name } }` returns both James and Morgan. Each mutation adds
+another entry to the in-memory store.
+
+## Subscriptions [#subscriptions]
+
+Live subscription delivery requires a GraphQL server and event provider. The playground executes
+queries and mutations locally, so run the subscription example below in your server rather than
+the playground.
+
+Use `builder.subscriptionType()`, `builder.subscriptionField()`, and `builder.subscriptionFields()`
+to define subscription fields. Each field has a `subscribe` function that returns an async iterable
+of events, and a `resolve` function that converts each event into the field's result.
+
+This separate example defines the context contract for a counter and its event provider. Supply a
+shared counter and provider through your server's context so the mutation publishes to the same
+stream that subscriptions consume. The provider's `subscribe()` method must register the listener
+when called and release it when the returned iterator is closed.
+
+```typescript
+import SchemaBuilder from '@pothos/core';
+
+type Context = {
+  count: { value: number };
+  counterEvents: {
+    publish: (value: number) => void;
+    subscribe: () => AsyncIterable<number>;
+  };
+};
+
+const builder = new SchemaBuilder<{ Context: Context }>({});
+
+builder.queryType({
+  fields: (t) => ({
+    count: t.int({
+      resolve: (_parent, _args, context) => context.count.value,
+    }),
+  }),
+});
+
+builder.mutationType({
+  fields: (t) => ({
+    incrementCount: t.int({
+      resolve: (_parent, _args, context) => {
+        context.count.value += 1;
+        context.counterEvents.publish(context.count.value);
+        return context.count.value;
+      },
+    }),
+  }),
+});
+
+builder.subscriptionType({
+  fields: (t) => ({
+    incrementedCount: t.int({
+      subscribe: (_parent, _args, context) => context.counterEvents.subscribe(),
+      resolve: (count) => count,
+    }),
+  }),
+});
+
+const schema = builder.toSchema();
+```
+
+Start a subscription before calling the mutation to receive its event:
+
+```graphql
+subscription {
+  incrementedCount
+}
+```
+
+```graphql
+mutation {
+  incrementCount
+}
+```
+
+With an initial count of `0`, the mutation returns `1` and the subscription emits
+`{ "data": { "incrementedCount": 1 } }`. Configure a subscription transport in your GraphQL server
+to deliver these results to clients.
+
+
+
+<Callout type="warn">
+  Define `subscribe` before `resolve` so TypeScript can infer the resolver's event type.
+</Callout>

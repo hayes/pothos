@@ -1,0 +1,26 @@
+{
+  "id": "plugin-add-graphql",
+  "title": "Import an executable schema",
+  "description": "Run ImportedAndNew: user returns Leia from the imported resolver, while otherUser returns Luke from Pothos. Change Leia in the imported resolver and rerun to see only user change. Reset example restores the original source.",
+  "category": "plugins",
+  "relatedDocs": [
+    "/docs/plugins/add-graphql"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport AddGraphQLPlugin from '@pothos/plugin-add-graphql';\nimport { GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';\n\ntype User = { name: string };\n\nconst ExistingUser = new GraphQLObjectType<User>({\n  name: 'User',\n  fields: { name: { type: GraphQLString } },\n});\n\nconst existingSchema = new GraphQLSchema({\n  query: new GraphQLObjectType({\n    name: 'Query',\n    fields: {\n      user: {\n        type: ExistingUser,\n        resolve: () => ({ name: 'Leia' }),\n      },\n    },\n  }),\n});\n\nconst builder = new SchemaBuilder<{ Objects: { User: User } }>({\n  plugins: [AddGraphQLPlugin],\n  add: { schema: existingSchema },\n});\n\nbuilder.queryFields((t) => ({\n  otherUser: t.field({\n    type: 'User',\n    resolve: () => ({ name: 'Luke' }),\n  }),\n}));\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query ImportedAndNew {\n  user {\n    name\n  }\n  otherUser {\n    name\n  }\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query ImportedAndNew {\n  user {\n    name\n  }\n  otherUser {\n    name\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

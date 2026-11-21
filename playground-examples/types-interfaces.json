@@ -1,0 +1,26 @@
+{
+  "id": "types-interfaces",
+  "title": "Interface fields",
+  "description": "Run the animals query. Change the giraffe height from 5.2 to 6 and run again; diet remains inherited from Animal.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/interfaces"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\ntype Giraffe = {\n  kind: 'giraffe';\n  diet: string;\n  heightInMeters: number;\n};\n\ntype Lion = {\n  kind: 'lion';\n  diet: string;\n  hasMane: boolean;\n};\n\ntype Animal = Giraffe | Lion;\n\nconst builder = new SchemaBuilder({});\nconst AnimalRef = builder.interfaceRef<Animal>('Animal');\nconst GiraffeRef = builder.objectRef<Giraffe>('Giraffe');\nconst LionRef = builder.objectRef<Lion>('Lion');\n\nAnimalRef.implement({\n  fields: (t) => ({\n    diet: t.exposeString('diet'),\n  }),\n  resolveType: (animal) => {\n    switch (animal.kind) {\n      case 'giraffe':\n        return 'Giraffe';\n      case 'lion':\n        return 'Lion';\n    }\n  },\n});\n\nGiraffeRef.implement({\n  interfaces: [AnimalRef],\n  fields: (t) => ({\n    height: t.exposeFloat('heightInMeters'),\n  }),\n});\n\nLionRef.implement({\n  interfaces: [AnimalRef],\n  fields: (t) => ({\n    hasMane: t.exposeBoolean('hasMane'),\n  }),\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    animals: t.field({\n      type: [AnimalRef],\n      resolve: (): Animal[] => [\n        { kind: 'giraffe', diet: 'herbivore', heightInMeters: 5.2 },\n        { kind: 'lion', diet: 'carnivore', hasMane: true },\n      ],\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Interfaces {\n  animals {\n    __typename\n    diet\n    ... on Giraffe {\n      height\n    }\n    ... on Lion {\n      hasMane\n    }\n  }\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query Interfaces {\n  animals {\n    __typename\n    diet\n    ... on Giraffe {\n      height\n    }\n    ... on Lion {\n      hasMane\n    }\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

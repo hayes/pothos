@@ -1,0 +1,143 @@
+# Model inheritance
+URL: /docs/plugins/prisma-next/inheritance
+Exposing inherited Prisma models through a GraphQL interface
+
+
+When your Prisma contract defines inherited models, such as a `Task` that can be a `Bug` or a
+`Feature`, expose their shared fields through a GraphQL interface. Each kind gets an object type,
+and the plugin chooses the right type for each row automatically.
+
+For multiple GraphQL views of a single Prisma model, use [Type variants](./variants).
+
+## Define the interface and its objects [#define-the-interface-and-its-objects]
+
+This example assumes a contract with `Task`, its `Bug` and `Feature` variants, and a `User` model
+with a `tasks` relation. `Bug` also has an optional `reviewer` relation to `User`. Use the builder
+and imported `db` from [Setup](./setup), with `User` already defined as a GraphQL type.
+
+```ts
+const Task = builder.prismaInterface('Task', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    title: t.exposeString('title'),
+    owner: t.relation('owner'),
+  }),
+});
+
+const Bug = builder.prismaObject('Bug', {
+  interfaces: [Task],
+  select: { reviewer: true },
+  fields: (t) => ({
+    severity: t.exposeString('severity'),
+    reviewerEmail: t.string({
+      nullable: true,
+      resolve: (bug) => bug.reviewer?.email,
+    }),
+  }),
+});
+
+builder.prismaObject('Feature', {
+  interfaces: [Task],
+  fields: (t) => ({ priority: t.exposeInt('priority') }),
+});
+
+builder.queryFields((t) => ({
+  tasks: t.prismaField({ type: [Task] }),
+  bugs: t.prismaField({ type: [Bug] }),
+}));
+```
+
+Define an object for each variant in the contract. You don't need a `resolveType`. Clients can
+query shared fields and add fragments for variant-specific fields:
+
+```graphql
+{
+  tasks {
+    id
+    title
+    ... on Bug {
+      severity
+      reviewerEmail
+    }
+    ... on Feature {
+      priority
+    }
+  }
+}
+```
+
+A variant's `select` works like it does on any other type. Here `Bug` loads its reviewer so
+`reviewerEmail` can read it. Anything in the interface's `select` is available to the types that
+implement it too.
+
+## Query a variant [#query-a-variant]
+
+Use a variant's type on a field to return only that variant's rows. To filter on the variant's
+own fields, pass `where` as a function:
+
+```ts
+builder.queryField('highSeverityBugs', (t) =>
+  t.prismaField({
+    type: [Bug],
+    query: { where: (bug) => bug.severity.eq('high') },
+  }),
+);
+```
+
+If you pass your own `collection`, start from the base model narrowed to the variant, such as
+`db.orm.Task.variant('bug')`. This is what the plugin uses when you omit `collection`.
+
+## Expose related variants [#expose-related-variants]
+
+For a relation to `Task`, return the interface to include every variant, or pass a variant's ref
+as `type` to narrow the field:
+
+```ts
+builder.prismaObjectFields('User', (t) => ({
+  tasks: t.relation('tasks', { type: Task }),
+  bugs: t.relation('tasks', { type: Bug }),
+}));
+```
+
+The plugin sometimes runs an extra batched query to load what each variant's type needs.
+
+When a variant is stored in its own table, a relation to it can filter and sort by the variant's
+own fields, but not by fields inherited from the base model. To use both, start from the base
+Collection narrowed with `variant()`, as in the previous section.
+
+Custom resolvers that load rows can use [collectionFromInfo](./relations#returning-rows-from-other-fields)
+to load what the query selects. Variant rows loaded this way can also be returned through a
+compatible `prismaInterface`. The plugin loads anything else it needs to resolve their type.
+
+## Mutations [#mutations]
+
+When a `t.prismaField` returns `Bug`, its resolver receives a Collection for
+`orm.Task.variant('bug')`. `variant('bug')` only narrows to bugs, and `update()` and `delete()` act
+on the first match, so add a filter such as `where({ id })` to change one task.
+
+### Return an updated record [#return-an-updated-record]
+
+Some Prisma write methods return only the base model's columns when the variant has its own
+table. For example, an updated `Feature` may be missing its `priority`. Use `updateAndCount()`
+to make the change, then `first()` on the same filtered Collection to read the response.
+
+When the field returns the `Task` interface, the plugin may run another query after the update
+to load a relation such as `Bug.reviewer`.
+
+### Return a deleted record [#return-a-deleted-record]
+
+A deleted row cannot be read again. To return a deleted bug with its reviewer, return the `Bug`
+object type, or prepare the query with `collectionFromInfo({ ..., typeName: 'Bug' })` before
+calling `delete()`. Either way the reviewer is loaded as part of the delete.
+`collectionFromInfo` requires `typeName` for a Collection that uses `variant('bug')`.
+
+For a variant stored in its own table, Prisma's `delete()` result contains only the base model's
+columns too. Return an ID or a payload that does not need the missing fields. Avoid `@defer` on a
+deleted record, because deferred fields may need to read the row after it is gone.
+
+### Upsert a variant [#upsert-a-variant]
+
+For variants stored in the base model's table, `upsert()` can match a unique key belonging to a
+different variant. For example, `Task.variant('bug').upsert(...)` can update a feature with that
+key and return it as a bug. Check the existing task's kind before choosing whether to create or
+update when your mutation must preserve it.

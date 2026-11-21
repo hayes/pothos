@@ -1,0 +1,102 @@
+# Pothos GraphQL
+
+> Pothos is a plugin based GraphQL schema builder for typescript
+
+Each page below is available as plain markdown at the listed .mdx URL.
+The full documentation in a single file: https://pothos-graphql.dev/llms-full.txt
+
+## Docs
+
+- [Design](https://pothos-graphql.dev/docs/design.mdx): Design overview for Pothos
+- [Getting started](https://pothos-graphql.dev/docs.mdx): Install Pothos, build a schema, and run your first GraphQL query.
+- [LLM Integration](https://pothos-graphql.dev/docs/llms.mdx): Read the Pothos documentation as plain text for use with LLMs and other tools.
+- [Resources](https://pothos-graphql.dev/docs/resources.mdx): External guides, tools, and libraries created by members of the Pothos community.
+- [Sponsors](https://pothos-graphql.dev/docs/sponsors.mdx): The generous people supporting Pothos development
+- [ArgBuilder](https://pothos-graphql.dev/docs/api/arg-builder.mdx): API docs for Pothos ArgBuilder
+- [FieldBuilder](https://pothos-graphql.dev/docs/api/field-builder.mdx): API docs for Pothos FieldBuilder
+- [InputFieldBuilder](https://pothos-graphql.dev/docs/api/input-field-builder.mdx): API docs for Pothos InputFieldBuilder
+- [SchemaBuilder](https://pothos-graphql.dev/docs/api/schema-builder.mdx): API docs for Pothos SchemaBuilder
+- [File layout](https://pothos-graphql.dev/docs/guide/app-layout.mdx): Guide for Pothos app layouts
+- [Using args](https://pothos-graphql.dev/docs/guide/args.mdx): Guide for defining field args in Pothos
+- [Default nullability](https://pothos-graphql.dev/docs/guide/changing-default-nullability.mdx): Configure schema-wide defaults and override them for individual fields.
+- [Circular References](https://pothos-graphql.dev/docs/guide/circular-references.mdx): Managing circular imports and recursive types in Pothos
+- [Using Context](https://pothos-graphql.dev/docs/guide/context.mdx): Guide for using context object in Pothos
+- [Enums](https://pothos-graphql.dev/docs/guide/enums.mdx): Define enum values and use them in fields and arguments.
+- [Fields](https://pothos-graphql.dev/docs/guide/fields.mdx): Guide for defining fields in Pothos
+- [Generating client types](https://pothos-graphql.dev/docs/guide/generating-client-types.mdx): Guide for generating client types from a Pothos schema
+- [Inferring Types](https://pothos-graphql.dev/docs/guide/inferring-types.mdx): Extract backing types and builder types for TypeScript helpers
+- [Input Objects](https://pothos-graphql.dev/docs/guide/inputs.mdx): Guide for defining Input Object types in Pothos
+- [Interfaces](https://pothos-graphql.dev/docs/guide/interfaces.mdx): Guide for defining Interface types in Pothos
+- [Objects](https://pothos-graphql.dev/docs/guide/objects.mdx): Define GraphQL object types from your application's data.
+- [Patterns](https://pothos-graphql.dev/docs/guide/patterns.mdx): Guide for using common patterns in Pothos
+- [Using the playground](https://pothos-graphql.dev/docs/guide/playground.mdx): Run a Pothos schema, edit its source, and use variables to explore your data.
+- [Printing Schemas](https://pothos-graphql.dev/docs/guide/printing-schemas.mdx): Guide for printing a Pothos schema to an SDL schema file
+- [Queries, Mutations and Subscriptions](https://pothos-graphql.dev/docs/guide/queries-mutations-and-subscriptions.mdx): Guide for adding queries, mutations and subscriptions to your schema
+- [Scalars](https://pothos-graphql.dev/docs/guide/scalars.mdx): Register custom scalars and define their input and output behavior.
+- [SchemaBuilder](https://pothos-graphql.dev/docs/guide/schema-builder.mdx): Create a builder, configure TypeScript types, and build a GraphQL schema.
+- [Troubleshooting](https://pothos-graphql.dev/docs/guide/troubleshooting.mdx): Guide for troubleshooting common Pothos issues
+- [Unions](https://pothos-graphql.dev/docs/guide/unions.mdx): Guide for defining Union types in Pothos
+- [Using plugins](https://pothos-graphql.dev/docs/guide/using-plugins.mdx): Guide for using plugins with Pothos
+- [Writing plugins](https://pothos-graphql.dev/docs/guide/writing-plugins.mdx): Guide for writing plugins for Pothos
+- [Giraphql to Pothos](https://pothos-graphql.dev/docs/migrations/giraphql-pothos.mdx): Migration guide for upgrading from GiraphQL 2.* to Pothos 3.0
+- [Migrations](https://pothos-graphql.dev/docs/migrations.mdx): List of Pothos migration guides
+- [v2.0](https://pothos-graphql.dev/docs/migrations/v2.mdx): Migration guide for upgrading from GiraphQL 1.* to GiraphQL 2.0
+- [v4.0](https://pothos-graphql.dev/docs/migrations/v4.mdx): Migration guide for upgrading from Pothos 3.x to Pothos 4.0
+- [Add GraphQL plugin](https://pothos-graphql.dev/docs/plugins/add-graphql.mdx): Import existing GraphQL types and executable schemas into Pothos.
+- [Complexity plugin](https://pothos-graphql.dev/docs/plugins/complexity.mdx): Complexity plugin docs for Pothos
+- [Dataloader plugin](https://pothos-graphql.dev/docs/plugins/dataloader.mdx): Batch object and relation loads, preserve result order, and cache records per request.
+- [Directives plugin](https://pothos-graphql.dev/docs/plugins/directives.mdx): Attach directive metadata to types, fields, and schemas for other tools to consume.
+- [Errors plugin](https://pothos-graphql.dev/docs/plugins/errors.mdx): Errors plugin docs for Pothos
+- [Federation plugin](https://pothos-graphql.dev/docs/plugins/federation.mdx): Federation plugin docs for Pothos
+- [Grafast plugin](https://pothos-graphql.dev/docs/plugins/grafast.mdx): A plugin for building schemas with Grafast plans instead of resolvers
+- [Plugins](https://pothos-graphql.dev/docs/plugins.mdx): List of plugins for Pothos
+- [Mocks plugin](https://pothos-graphql.dev/docs/plugins/mocks.mdx): Mocks plugin docs for Pothos
+- [Relay plugin](https://pothos-graphql.dev/docs/plugins/relay.mdx): Add globally identifiable nodes, cursor pagination, and Relay mutation fields.
+- [Simple objects plugin](https://pothos-graphql.dev/docs/plugins/simple-objects.mdx): Simple objects plugin docs for Pothos
+- [Smart subscriptions plugin](https://pothos-graphql.dev/docs/plugins/smart-subscriptions.mdx): Re-execute selected query fields when their data sources publish events.
+- [SubGraph plugin](https://pothos-graphql.dev/docs/plugins/sub-graph.mdx): Build public and internal API variants from one set of types and fields.
+- [Tracing plugin](https://pothos-graphql.dev/docs/plugins/tracing.mdx): Select resolvers to trace and connect them to a logger or tracing provider.
+- [Validation plugin](https://pothos-graphql.dev/docs/plugins/validation.mdx): Validation plugin docs for Pothos
+- [With-Input plugin](https://pothos-graphql.dev/docs/plugins/with-input.mdx): With-Input plugin docs for Pothos
+- [Zod validation plugin](https://pothos-graphql.dev/docs/plugins/zod.mdx): Validate field arguments and input fields with a validate option that maps onto zod constraints.
+- [Async selections](https://pothos-graphql.dev/docs/plugins/drizzle/async-selections.mdx): Planning selections that depend on asynchronous request data
+- [Connection helpers](https://pothos-graphql.dev/docs/plugins/drizzle/connection-helpers.mdx): Paginate attachment rows while returning Media nodes and custom edge fields
+- [Connections](https://pothos-graphql.dev/docs/plugins/drizzle/connections.mdx): Paginate Drizzle queries and relations using GraphQL selections
+- [Drizzle plugin](https://pothos-graphql.dev/docs/plugins/drizzle.mdx): A plugin to support efficient queries through drizzles relational query builder API
+- [Interfaces](https://pothos-graphql.dev/docs/plugins/drizzle/interfaces.mdx): Creating interfaces for drizzle tables that can be shared by variants
+- [Drizzle Objects](https://pothos-graphql.dev/docs/plugins/drizzle/objects.mdx): Defining GraphQL object types based on drizzle tables
+- [Ordering and cursors](https://pothos-graphql.dev/docs/plugins/drizzle/ordering-and-cursors.mdx): How a connection orders rows, and the cursors that ordering produces
+- [Query planning](https://pothos-graphql.dev/docs/plugins/drizzle/query-planning.mdx): How the plugin turns a GraphQL query into drizzle queries
+- [Relations](https://pothos-graphql.dev/docs/plugins/drizzle/relations.mdx): Adding relations to drizzle objects
+- [Relay nodes](https://pothos-graphql.dev/docs/plugins/drizzle/relay.mdx): Defining refetchable nodes with the Drizzle plugin
+- [Selections](https://pothos-graphql.dev/docs/plugins/drizzle/selections.mdx): Selecting the columns and relations your fields need
+- [Setup](https://pothos-graphql.dev/docs/plugins/drizzle/setup.mdx): Setting up the Drizzle plugin
+- [Type variants](https://pothos-graphql.dev/docs/plugins/drizzle/variants.mdx): How to define multiple GraphQL types based on the same drizzle table
+- [Connections](https://pothos-graphql.dev/docs/plugins/prisma-next/connections.mdx): Relay connections backed by Prisma Collections
+- [Prisma ORM 8 plugin](https://pothos-graphql.dev/docs/plugins/prisma-next.mdx): An experimental Pothos plugin for the Prisma ORM 8 collection client
+- [Indirect relations](https://pothos-graphql.dev/docs/plugins/prisma-next/indirect-relations.mdx): Loading relations for fields that aren't t.relation
+- [Model inheritance](https://pothos-graphql.dev/docs/plugins/prisma-next/inheritance.mdx): Exposing inherited Prisma models through a GraphQL interface
+- [Interfaces](https://pothos-graphql.dev/docs/plugins/prisma-next/interfaces.mdx): GraphQL interfaces backed by contract models
+- [Migrating from the Prisma plugin](https://pothos-graphql.dev/docs/plugins/prisma-next/migrating-from-prisma.mdx): Updating an existing Pothos schema for Prisma ORM 8
+- [Objects](https://pothos-graphql.dev/docs/plugins/prisma-next/objects.mdx): Defining GraphQL types backed by contract models
+- [Queries and selections](https://pothos-graphql.dev/docs/plugins/prisma-next/queries.mdx): Combining an ORM collection with field queries and selected data
+- [Relations](https://pothos-graphql.dev/docs/plugins/prisma-next/relations.mdx): Adding relations to Prisma-backed types
+- [Relay nodes](https://pothos-graphql.dev/docs/plugins/prisma-next/relay.mdx): Defining Relay nodes for contract-backed models
+- [Setup](https://pothos-graphql.dev/docs/plugins/prisma-next/setup.mdx): Setting up the Prisma ORM 8 plugin
+- [Transactions](https://pothos-graphql.dev/docs/plugins/prisma-next/transactions.mdx): Running mutations and GraphQL operations in a Prisma transaction
+- [Type variants](https://pothos-graphql.dev/docs/plugins/prisma-next/variants.mdx): Multiple GraphQL types backed by the same contract model
+- [Connections](https://pothos-graphql.dev/docs/plugins/prisma/connections.mdx): Creating relay connections with the Prisma plugin
+- [Prisma plugin](https://pothos-graphql.dev/docs/plugins/prisma.mdx): Prisma plugin docs for Pothos
+- [Indirect relations](https://pothos-graphql.dev/docs/plugins/prisma/indirect-relations.mdx): Indirect relations and join tables
+- [Interfaces](https://pothos-graphql.dev/docs/plugins/prisma/interfaces.mdx): Creating interfaces for prisma models that can be shared by variants
+- [Prisma Objects](https://pothos-graphql.dev/docs/plugins/prisma/objects.mdx): Prisma plugin docs for Pothos
+- [Prisma Utils](https://pothos-graphql.dev/docs/plugins/prisma/prisma-utils.mdx): Prisma utils for creating input types
+- [Query planning](https://pothos-graphql.dev/docs/plugins/prisma/query-planning.mdx): How the plugin turns a GraphQL query into prisma queries
+- [Relations](https://pothos-graphql.dev/docs/plugins/prisma/relations.mdx): Adding relations to prisma objects
+- [Relay nodes](https://pothos-graphql.dev/docs/plugins/prisma/relay.mdx): Using the Prisma and Relay plugins together
+- [Selections](https://pothos-graphql.dev/docs/plugins/prisma/selections.mdx): how to use custom includes and selections to optimize your prisma queries
+- [Setup](https://pothos-graphql.dev/docs/plugins/prisma/setup.mdx): Setting up the Prisma plugin
+- [Type variants](https://pothos-graphql.dev/docs/plugins/prisma/variants.mdx): How to define multiple GraphQL types based on the same prisma model
+- [Prisma without a plugin](https://pothos-graphql.dev/docs/plugins/prisma/without-a-plugin.mdx): Using Prisma without a plugin
+- [Scope auth plugin](https://pothos-graphql.dev/docs/plugins/scope-auth.mdx): Authorize fields and types with request scopes, permission loaders, and ownership checks.
+- [Relay node authorization](https://pothos-graphql.dev/docs/plugins/scope-auth/relay-nodes.mdx): Protect direct node lookups and use scopes to distinguish refetchable access from access granted through a parent field.

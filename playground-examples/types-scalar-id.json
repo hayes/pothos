@@ -1,0 +1,25 @@
+{
+  "id": "types-scalar-id",
+  "title": "String ID application types",
+  "description": "Run echo with the integer ID literal 42. GraphQL parses it into a string; change the literal to \"giraffe-42\" and run again.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/scalars"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder<{\n  Scalars: {\n    ID: { Input: string; Output: string };\n  };\n}>({});\n\nbuilder.queryType({\n  fields: (t) => ({\n    echo: t.id({\n      args: { id: t.arg.id({ required: true }) },\n      resolve: (_parent, { id }) => id,\n    }),\n    inputType: t.string({\n      args: { id: t.arg.id({ required: true }) },\n      resolve: (_parent, { id }) => typeof id,\n    }),\n  }),\n});\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query ScalarId {\n  echo(id: 42)\n  inputType(id: 42)\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query ScalarId {\n  echo(id: 42)\n  inputType(id: 42)\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ]
+}

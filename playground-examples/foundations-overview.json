@@ -1,0 +1,26 @@
+{
+  "id": "foundations-overview",
+  "title": "A schema from your data",
+  "description": "Run the query, then change heightInMeters in the backing data. The result changes in feet without exposing the original property.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/objects"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\n\nconst Giraffe = builder.objectRef<{ name: string; heightInMeters: number }>('Giraffe').implement({\n  fields: (t) => ({\n    name: t.exposeString('name'),\n    heightInFeet: t.float({\n      resolve: (giraffe) => giraffe.heightInMeters * 3.28084,\n    }),\n  }),\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    giraffe: t.field({\n      type: Giraffe,\n      resolve: () => ({ name: 'Gina', heightInMeters: 5 }),\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Giraffe {\n  giraffe {\n    name\n    heightInFeet\n  }\n}\n",
+  "queries": [
+    {
+      "title": "Giraffe",
+      "query": "query Giraffe {\n  giraffe {\n    name\n    heightInFeet\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

@@ -1,0 +1,125 @@
+# Type variants
+URL: /docs/plugins/drizzle/variants
+How to define multiple GraphQL types based on the same drizzle table
+
+
+A variant gives another GraphQL representation to the same database row. The publishing API
+uses public User fields for author pages and a private Viewer for the signed-in account.
+
+The API has three parts:
+
+* `variant` registers an additional type instead of naming the primary type with `name`.
+* `t.variant` returns another representation of the same row.
+* A relation's `type` option can select a variant using its returned object ref.
+
+## A single object variant [#a-single-object-variant]
+
+Use `variant` to define Viewer alongside the primary User type. `t.variant('users')` exposes
+the public representation of the same row:
+
+```ts
+const Viewer = builder.drizzleObject('users', {
+  variant: 'Viewer',
+  select: {},
+  fields: (t) => {
+    return {
+      id: t.exposeID('id'),
+      user: t.variant('users'),
+      drafts: t.relation('posts', {
+        query: {
+        where: { published: false },
+        orderBy: { createdAt: 'desc', id: 'desc' },
+      },
+      }),
+    };
+  },
+});
+```
+
+## A viewer with role-specific fields [#a-viewer-with-role-specific-fields]
+
+When viewer fields differ by role, Viewer can instead be an interface with object variants
+for each role. The following definition uses this structure; [Interfaces](./interfaces) explains
+its implementations:
+
+```typescript playground example="plugin-drizzle" query="{ me { __typename email user { fullName } drafts { title } } }"
+export const Viewer = builder.drizzleInterface('users', {
+  variant: 'Viewer',
+  select: { columns: { id: true, role: true } },
+  resolveType: (user) => (user.role === 'editor' ? 'EditorViewer' : 'AuthorViewer'),
+  fields: (t) => ({
+    user: t.variant('users'),
+    email: t.exposeString('email'),
+    drafts: t.relation('posts', {
+      query: { where: { published: false }, orderBy: { id: 'asc' } },
+    }),
+  }),
+});
+```
+
+The root lookup uses the authenticated context ID. It does not accept an arbitrary author's ID:
+
+```typescript playground example="plugin-drizzle" query="{ me { __typename email drafts { title } } }"
+me: t.drizzleField({
+  type: Viewer,
+  nullable: true,
+  resolve: (query, _root, _args, ctx) => {
+    return db.query.users.findFirst(
+      query({
+        where: { id: ctx.userId },
+      }),
+    );
+  },
+}),
+```
+
+Maya (`userId: 1`) sees “Planning the spring exchange”; Leo (`userId: 2`) sees “Saving rainwater.”
+The interface and variants describe the shapes; the root lookup restricts ownership. Public
+author fields and post connections return published posts only.
+
+## Conditionally expose another variant [#conditionally-expose-another-variant]
+
+The publishing User also exposes its Viewer conditionally. Define that field after Viewer is registered,
+which avoids a circular reference between their definitions:
+
+```typescript playground example="plugin-drizzle" query="{ own: author(id: 1) { viewer { email drafts { title } } } other: author(id: 2) { viewer { email } } }"
+builder.drizzleObjectField('users', 'viewer', (t) =>
+  t.variant(Viewer, {
+    select: { columns: { id: true } },
+    isNull: (user, _args, ctx) => user.id !== ctx.userId,
+  }),
+);
+```
+
+The ownership check is essential: without it an arbitrary author's public row could reveal that
+author's drafts. `isNull` makes the variant field null when its parent is another account.
+
+A variant field accepts a `select` just like other fields. Here it loads `id` for the ownership
+check; the target variant contributes the selections required by its own fields.
+
+## Relation variants [#relation-variants]
+
+To use a different representation of a related row, pass its object ref to `t.relation`'s `type`
+option. The variant must represent the relation's target table. For example, this alternative
+adds a compact PostSummary representation and selects it for a public author's posts:
+
+```ts
+const PostSummary = builder.drizzleObject('posts', {
+  variant: 'PostSummary',
+  fields: (t) => ({ title: t.exposeString('title') }),
+});
+
+builder.drizzleObjectField('users', 'postSummaries', (t) =>
+  t.relation('posts', {
+    type: PostSummary,
+    query: {
+      where: { published: true },
+      orderBy: { id: 'asc' },
+    },
+  }),
+);
+```
+
+Two variants selected for the same row have their type-level selections merged. Conflicting
+relation arguments or extras can fail; see
+[Conflicting selections between variants](./query-planning#conflicting-selections-between-variants).

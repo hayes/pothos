@@ -1,0 +1,222 @@
+# Getting started
+URL: /docs
+Install Pothos, build a schema, and run your first GraphQL query.
+
+
+Define your GraphQL types, fields, and resolvers in TypeScript. Pothos checks how they fit together
+without generating resolver types or maintaining a separate schema definition.
+
+This guide creates a small schema, serves it with
+[GraphQL Yoga](https://the-guild.dev/graphql/yoga-server), and runs a query against it.
+
+You can try the schema immediately with its Playground action below. Follow the setup steps to run
+the same schema in your own server. [Using the playground](/docs/guide/playground) explains the editor controls.
+
+## Installing [#installing]
+
+Start in an empty directory with Node.js and npm installed:
+
+```sh
+npm init -y
+npm pkg set type=module
+```
+
+Install Pothos, its `graphql` peer dependency, and Yoga:
+
+<CodeBlockTabs defaultValue="npm">
+  <CodeBlockTabsList>
+    <CodeBlockTabsTrigger value="npm">
+      npm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="pnpm">
+      pnpm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="yarn">
+      yarn
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="bun">
+      bun
+    </CodeBlockTabsTrigger>
+  </CodeBlockTabsList>
+
+  <CodeBlockTab value="npm">
+    ```bash
+    npm install @pothos/core graphql graphql-yoga
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="pnpm">
+    ```bash
+    pnpm add @pothos/core graphql graphql-yoga
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="yarn">
+    ```bash
+    yarn add @pothos/core graphql graphql-yoga
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="bun">
+    ```bash
+    bun add @pothos/core graphql graphql-yoga
+    ```
+  </CodeBlockTab>
+</CodeBlockTabs>
+
+Install TypeScript and `tsx` to check and run the example:
+
+<CodeBlockTabs defaultValue="npm">
+  <CodeBlockTabsList>
+    <CodeBlockTabsTrigger value="npm">
+      npm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="pnpm">
+      pnpm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="yarn">
+      yarn
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="bun">
+      bun
+    </CodeBlockTabsTrigger>
+  </CodeBlockTabsList>
+
+  <CodeBlockTab value="npm">
+    ```bash
+    npm install --save-dev typescript @types/node tsx
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="pnpm">
+    ```bash
+    pnpm add --save-dev typescript @types/node tsx
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="yarn">
+    ```bash
+    yarn add --dev typescript @types/node tsx
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="bun">
+    ```bash
+    bun add --dev typescript @types/node tsx
+    ```
+  </CodeBlockTab>
+</CodeBlockTabs>
+
+## Set up TypeScript [#set-up-typescript]
+
+Create `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["*.ts"]
+}
+```
+
+Pothos relies on strict null checking for its type inference. Keep `strict` enabled when adding
+Pothos to an existing project too.
+
+## Create a simple schema [#create-a-simple-schema]
+
+Create `schema.ts`:
+
+```typescript playground example="foundations-getting-started"
+import SchemaBuilder from '@pothos/core';
+
+const builder = new SchemaBuilder({});
+
+builder.queryType({
+  fields: (t) => ({
+    hello: t.string({
+      args: {
+        name: t.arg.string(),
+      },
+      resolve: (_parent, { name }) => `hello, ${name ?? 'World'}`,
+    }),
+  }),
+});
+
+export const schema = builder.toSchema();
+
+```
+
+`queryType` defines the fields clients can query. Here, `hello` returns a string and accepts an
+optional `name` argument. Pothos infers the resolver's argument types from that definition.
+
+`toSchema()` builds a graphql-js `GraphQLSchema`. You can use it with Yoga or another server that
+accepts a `GraphQLSchema`.
+
+## Create a server [#create-a-server]
+
+Create `server.ts` alongside `schema.ts`:
+
+```typescript
+import { createServer } from 'node:http';
+import { createYoga } from 'graphql-yoga';
+import { schema } from './schema.js';
+
+const yoga = createYoga({ schema });
+const server = createServer(yoga);
+
+server.listen(4000, () => {
+  console.log('Visit http://localhost:4000/graphql');
+});
+```
+
+Check the types, then start the server:
+
+```sh
+npx tsc
+npx tsx server.ts
+```
+
+`tsx` runs TypeScript without checking types, so run `tsc` separately to catch type errors.
+
+## Run a query [#run-a-query]
+
+Open [http://localhost:4000/graphql](http://localhost:4000/graphql) to use Yoga's GraphiQL explorer.
+Run this query:
+
+```graphql playground example="foundations-getting-started"
+query Hello {
+  hello(name: "Pothos")
+}
+
+```
+
+The response is:
+
+```json
+{
+  "data": {
+    "hello": "hello, Pothos"
+  }
+}
+```
+
+Omit the `name` argument to get `"hello, World"`. Stop the server with Ctrl+C when you're done.
+
+## Continue building [#continue-building]
+
+[Objects](/docs/guide/objects) shows how to expose your application's data. [Fields](/docs/guide/fields) covers
+resolvers, lists, and nullability, and [Arguments](/docs/guide/args) explains how clients pass values to them.
+When your schema needs request data, see [Context](/docs/guide/context). [App layout](/docs/guide/app-layout) shows how
+to organize a larger schema across files.

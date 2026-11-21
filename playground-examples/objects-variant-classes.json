@@ -1,0 +1,26 @@
+{
+  "id": "objects-variant-classes",
+  "title": "Object types — Classes",
+  "description": "Run the query to get a giraffe’s name, height, and birth year. Change the birthday in the resolver, then run again to see how birthYear is calculated from it.",
+  "category": "core",
+  "order": 10,
+  "relatedDocs": [
+    "/docs/guide/objects"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\n\nclass Giraffe {\n  constructor(\n    public name: string,\n    public birthday: Date,\n    public heightInMeters: number,\n  ) {}\n}\n\nbuilder.objectType(Giraffe, {\n  name: 'Giraffe',\n  fields: (t) => ({\n    name: t.exposeString('name'),\n    height: t.exposeFloat('heightInMeters'),\n    birthYear: t.int({\n      resolve: (giraffe) => giraffe.birthday.getUTCFullYear(),\n    }),\n  }),\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    giraffe: t.field({\n      type: Giraffe,\n      resolve: () => new Giraffe('James', new Date(Date.UTC(2012, 11, 12)), 5.2),\n    }),\n  }),\n});\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Giraffe {\n  giraffe {\n    name\n    birthYear\n    height\n  }\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query Giraffe {\n  giraffe {\n    name\n    birthYear\n    height\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ]
+}

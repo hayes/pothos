@@ -1,0 +1,134 @@
+# Setup
+URL: /docs/plugins/drizzle/setup
+Setting up the Drizzle plugin
+
+
+Pass your existing Drizzle client and relations to the plugin. These guides assume familiarity
+with Drizzle; use its [driver setup](https://orm.drizzle.team/docs/connect-overview) and
+[relations documentation](https://orm.drizzle.team/docs/relations-v2) to configure the database.
+
+## Installing [#installing]
+
+<CodeBlockTabs defaultValue="npm">
+  <CodeBlockTabsList>
+    <CodeBlockTabsTrigger value="npm">
+      npm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="pnpm">
+      pnpm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="yarn">
+      yarn
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="bun">
+      bun
+    </CodeBlockTabsTrigger>
+  </CodeBlockTabsList>
+
+  <CodeBlockTab value="npm">
+    ```bash
+    npm install --save @pothos/plugin-drizzle
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="pnpm">
+    ```bash
+    pnpm add @pothos/plugin-drizzle
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="yarn">
+    ```bash
+    yarn add @pothos/plugin-drizzle
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="bun">
+    ```bash
+    bun add @pothos/plugin-drizzle
+    ```
+  </CodeBlockTab>
+</CodeBlockTabs>
+
+The plugin requires Drizzle's relational query builder v2. See the
+[version requirements](/docs/plugins/drizzle) before installing or upgrading Drizzle.
+
+## Configure the builder [#configure-the-builder]
+
+```ts
+// builder.ts
+import SchemaBuilder from '@pothos/core';
+import DrizzlePlugin from '@pothos/plugin-drizzle';
+import { getTableConfig } from 'drizzle-orm/sqlite-core';
+import { db } from './database';
+import { relations } from './tables';
+
+export interface PothosTypes {
+  DrizzleRelations: typeof relations;
+  Context: { userId: number };
+}
+
+export const builder = new SchemaBuilder<PothosTypes>({
+  plugins: [DrizzlePlugin],
+  drizzle: { client: db, getTableConfig, relations },
+});
+```
+
+`DrizzleRelations` provides the table and relation types used by Pothos. Import `getTableConfig`
+from the dialect used by your client (`sqlite-core` above, or `pg-core` / `mysql-core`). `client`
+may also be a function `(ctx) => db` for a request-specific client. The examples use
+[request context](/docs/guide/context) to supply the current `userId`.
+
+Use this builder to [define GraphQL types and fields](./objects), then call `builder.toSchema()`.
+
+## Integration with other plugins [#integration-with-other-plugins]
+
+Install and register `@pothos/plugin-relay` to use `drizzleNode` and connection fields:
+
+```ts
+import RelayPlugin from '@pothos/plugin-relay';
+
+// In the builder options:
+plugins: [RelayPlugin, DrizzlePlugin],
+relay: { nodesOnConnection: true },
+```
+
+`nodesOnConnection` adds the `nodes` convenience field used in these guides. Without it,
+select `edges { node { ... } }` instead.
+
+The [with-input plugin](../with-input) is another optional integration. To use
+`t.drizzleFieldWithInput`, install `@pothos/plugin-with-input`, import it, and add it to the
+builder's plugins:
+
+```ts
+import WithInputPlugin from '@pothos/plugin-with-input';
+
+// In the builder options:
+plugins: [RelayPlugin, WithInputPlugin, DrizzlePlugin],
+```
+
+## Plugin options [#plugin-options]
+
+* `client`: the drizzle client, or a function returning one from the request context.
+* `getTableConfig`: the `getTableConfig` of your dialect, used to read primary keys and unique
+  constraints.
+* `relations`: the relations passed to `drizzle()`.
+* `defaultConnectionSize` / `maxConnectionSize`: the page size a connection uses when the query
+  does not ask for one (defaults to 20), and the largest size it will accept (defaults to 100).
+  Both can also be set per field with `defaultSize` and `maxSize`.
+* `filterConnectionTotalCount`: see [Connection totalCount](./connections#connection-totalcount).
+* `skipDeferredFragments`: selections inside a `@defer` fragment are left out of the planned query
+  by default, and the fragment's fields are loaded through [fallback queries](./relations#fallback-queries)
+  when it resolves. Set this to `false` to plan deferred selections with the rest of the query.
+
+`skipDeferredFragments` controls query planning; it does not enable incremental execution. The application
+must register the defer directive and use an executor, server transport, and client that support
+the same incremental delivery protocol. With GraphQL.js 17, ordinary `execute` rejects schemas
+containing `@defer` or `@stream`; incremental execution uses `experimentalExecuteIncrementally`.
+For a server integration, see [GraphQL Yoga's defer and stream setup](https://the-guild.dev/graphql/yoga-server/docs/features/defer-stream),
+which uses `@graphql-yoga/plugin-defer-stream`. Check the integration's supported versions when
+choosing an executor and client; adding directives or changing `skipDeferredFragments` alone is
+not sufficient.

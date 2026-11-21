@@ -1,0 +1,32 @@
+{
+  "id": "plugin-add-graphql-kinds",
+  "title": "Imported interface, union, enum and input",
+  "description": "Run Filter to read Leia through the imported interface and filtered union. Run Descending to read Luke before Leia. Change the first query filter to Luke and compare its result. Reset example restores the original queries.",
+  "category": "plugins",
+  "relatedDocs": [
+    "/docs/plugins/add-graphql"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport AddGraphQLPlugin from '@pothos/plugin-add-graphql';\nimport {\n  GraphQLEnumType,\n  GraphQLInputObjectType,\n  GraphQLInterfaceType,\n  GraphQLObjectType,\n  GraphQLString,\n  GraphQLUnionType,\n} from 'graphql';\n\ntype MemberShape = { name: string };\ntype FilterShape = { name?: string | null };\n\nconst ExistingNamed = new GraphQLInterfaceType({\n  name: 'Named',\n  fields: { name: { type: GraphQLString } },\n  resolveType: () => 'Member',\n});\nconst ExistingMember = new GraphQLObjectType<MemberShape>({\n  name: 'Member',\n  interfaces: [ExistingNamed],\n  fields: { name: { type: GraphQLString } },\n});\nconst ExistingSearchResult = new GraphQLUnionType({\n  name: 'SearchResult',\n  types: [ExistingMember],\n  resolveType: () => 'Member',\n});\nconst ExistingOrder = new GraphQLEnumType({\n  name: 'Order',\n  values: { ASC: { value: 'asc' }, DESC: { value: 'desc' } },\n});\nconst ExistingFilter = new GraphQLInputObjectType({\n  name: 'MemberFilter',\n  fields: { name: { type: GraphQLString } },\n});\n\nconst builder = new SchemaBuilder({ plugins: [AddGraphQLPlugin] });\nconst Named = builder.addGraphQLInterface<MemberShape>(ExistingNamed);\nconst SearchResult = builder.addGraphQLUnion<MemberShape>(ExistingSearchResult);\nconst Order = builder.addGraphQLEnum<'asc' | 'desc'>(ExistingOrder);\nconst MemberFilter = builder.addGraphQLInput<FilterShape>(ExistingFilter);\n\nconst members: MemberShape[] = [{ name: 'Leia' }, { name: 'Luke' }];\nbuilder.queryType({\n  fields: (t) => ({\n    member: t.field({ type: Named, resolve: () => members[0] }),\n    search: t.field({\n      type: [SearchResult],\n      args: {\n        filter: t.arg({ type: MemberFilter }),\n        order: t.arg({ type: Order }),\n      },\n      resolve: (_parent, { filter, order }) => {\n        const matches = members.filter((member) => !filter?.name || member.name === filter.name);\n        return order === 'desc' ? matches.reverse() : matches;\n      },\n    }),\n  }),\n});\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Filter {\n  member {\n    name\n  }\n  search(filter: { name: \"Leia\" }, order: ASC) {\n    ... on Member {\n      name\n    }\n  }\n}\n",
+  "queries": [
+    {
+      "title": "01-filter",
+      "query": "query Filter {\n  member {\n    name\n  }\n  search(filter: { name: \"Leia\" }, order: ASC) {\n    ... on Member {\n      name\n    }\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "02-order",
+      "query": "query Descending {\n  search(order: DESC) {\n    ... on Member {\n      name\n    }\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

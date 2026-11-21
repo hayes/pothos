@@ -1,0 +1,294 @@
+# Generating client types
+URL: /docs/guide/generating-client-types
+Guide for generating client types from a Pothos schema
+
+
+Pothos does not have a built in mechanism for generating types to use with a client, but
+[graphql-code-generator](https://www.graphql-code-generator.com/) can be configured to consume a
+schema directly from your typescript files.
+
+## Export your schema [#export-your-schema]
+
+The first thing you will need is a file that exports your built schema. The schema should be
+exported as `schema` or as the default export. This will be used to generate your client types, but
+can also be the schema you use in your server.
+
+```typescript playground example="architecture-client-types"
+import SchemaBuilder from '@pothos/core';
+
+const builder = new SchemaBuilder({});
+const Post = builder.objectRef<{ id: string; title: string }>('Post');
+Post.implement({ fields: (t) => ({ id: t.exposeID('id'), title: t.exposeString('title') }) });
+const User = builder.objectRef<{ id: string; name: string }>('User');
+User.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    posts: t.field({ type: [Post], resolve: () => [{ id: 'post-1', title: 'First post' }] }),
+  }),
+});
+builder.queryType({
+  fields: (t) => ({ user: t.field({ type: User, resolve: () => ({ id: '1', name: 'Alex' }) }) }),
+});
+
+export const schema = builder.toSchema();
+
+```
+
+Save the example as `src/schema.ts` and the operation as `src/queries.graphql` to use them with the local Codegen configuration below. Codegen runs in your project, not in the playground.
+
+In a larger application, this entry point can import your builder and type-definition modules before exporting `builder.toSchema()`. Keep server startup separate so Codegen can import the schema without opening a listening port.
+
+## Setting up graphql-code-generator [#setting-up-graphql-code-generator]
+
+There are many different ways to set up graphql-code-generator, and the details depend a lot on your
+needs.
+
+See the
+[graphql-code-generator documentation](https://www.graphql-code-generator.com/docs/getting-started/installation)
+for more details.
+
+### Install the codegen packages [#install-the-codegen-packages]
+
+<CodeBlockTabs defaultValue="npm">
+  <CodeBlockTabsList>
+    <CodeBlockTabsTrigger value="npm">
+      npm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="pnpm">
+      pnpm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="yarn">
+      yarn
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="bun">
+      bun
+    </CodeBlockTabsTrigger>
+  </CodeBlockTabsList>
+
+  <CodeBlockTab value="npm">
+    ```bash
+    npm install --save graphql
+    npm install --save -D typescript @graphql-codegen/cli @graphql-codegen/client-preset
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="pnpm">
+    ```bash
+    pnpm add graphql
+    pnpm add -D typescript @graphql-codegen/cli @graphql-codegen/client-preset
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="yarn">
+    ```bash
+    yarn add graphql
+    yarn add --dev typescript @graphql-codegen/cli @graphql-codegen/client-preset
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="bun">
+    ```bash
+    bun add graphql
+    bun add --dev typescript @graphql-codegen/cli @graphql-codegen/client-preset
+    ```
+  </CodeBlockTab>
+</CodeBlockTabs>
+
+### Configure the codegen to import your schema [#configure-the-codegen-to-import-your-schema]
+
+Create a `codegen.ts` file in the root of your project:
+
+```typescript
+import type { CodegenConfig } from '@graphql-codegen/cli';
+import { printSchema } from 'graphql';
+import { schema } from './src/schema';
+
+const config: CodegenConfig = {
+  schema: printSchema(schema),
+  documents: ['src/**/*.{graphql,ts,tsx}', '!src/gql/**'],
+  generates: {
+    './src/gql/': {
+      preset: 'client',
+      plugins: [],
+    },
+  },
+};
+
+export default config;
+```
+
+You can customize this config as needed, but the relevant parts are:
+
+* Importing your GraphQL schema, this should be the result of calling `builder.toSchema({})`
+* using `printSchema` from `graphql` to convert the schema to a string
+
+## Run generation [#run-generation]
+
+The `documents` pattern must match your client queries, mutations, and fragments. Adjust it for your
+project and exclude the generated directory. For example, a file named `src/queries.graphql` can
+contain a named query that selects fields from your schema.
+
+```sh
+npx graphql-codegen --config codegen.ts
+```
+
+Run this again when your schema or operations change. The
+[client preset](https://the-guild.dev/graphql/codegen/plugins/presets/preset-client) generates typed
+operation documents and helpers in `src/gql/`; the result types reflect the fields each operation
+selects. The CLI imports your schema module, so its environment variables and other runtime
+dependencies must be available. Keep server startup outside that module.
+
+## Generating a schema.graphql file with graphql-code-generator [#generating-a-schemagraphql-file-with-graphql-code-generator]
+
+You can generate a schema.graphql file with graphql-code-generator by adding the `schema-ast`
+plugin:
+
+<CodeBlockTabs defaultValue="npm">
+  <CodeBlockTabsList>
+    <CodeBlockTabsTrigger value="npm">
+      npm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="pnpm">
+      pnpm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="yarn">
+      yarn
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="bun">
+      bun
+    </CodeBlockTabsTrigger>
+  </CodeBlockTabsList>
+
+  <CodeBlockTab value="npm">
+    ```bash
+    npm install --save -D @graphql-codegen/schema-ast
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="pnpm">
+    ```bash
+    pnpm add -D @graphql-codegen/schema-ast
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="yarn">
+    ```bash
+    yarn add --dev @graphql-codegen/schema-ast
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="bun">
+    ```bash
+    bun add --dev @graphql-codegen/schema-ast
+    ```
+  </CodeBlockTab>
+</CodeBlockTabs>
+
+```typescript
+// codegen.ts
+import { printSchema } from 'graphql';
+import type { CodegenConfig } from '@graphql-codegen/cli';
+import { schema } from './src/schema';
+
+const config: CodegenConfig = {
+  schema: printSchema(schema),
+  documents: ['src/**/*.{graphql,ts,tsx}', '!src/gql/**'],
+  generates: {
+    './src/gql/': {
+      preset: 'client',
+      plugins: [],
+    },
+    'schema.graphql': {
+      plugins: ['schema-ast'],
+    },
+  },
+};
+
+export default config;
+```
+
+## Adding scalars [#adding-scalars]
+
+Configure custom scalars to match their serialized values on the client. Add the following `config`
+property to the configuration above:
+
+```typescript
+config: {
+  strictScalars: true,
+  scalars: {
+    UUID: 'string',
+    DateTime: 'string',
+  },
+},
+```
+
+A DateTime scalar commonly serializes to an ISO date string. Mapping it to `Date` changes only the
+TypeScript type; Codegen does not convert JSON strings into JavaScript `Date` instances. Use `Date`
+only if your client actually performs that conversion. `strictScalars` makes generation fail when a
+custom scalar has no mapping; see the [client preset configuration](https://the-guild.dev/graphql/codegen/plugins/presets/preset-client#config-api).
+
+## Alternatives [#alternatives]
+
+In some cases you may want to use an alternative method for loading your schema.
+
+### Printing the schema to a file [#printing-the-schema-to-a-file]
+
+You can use the `printSchema` function from `graphql` to print your schema to a file, see
+[Printing Schemas](/docs/guide/printing-schemas) for more details:
+
+By writing the schema to a file, you will be able to load the schema from a file instead of importing
+it each time you want to generate your schema.
+
+Having your schema written to a file, and checked into source control has many benefits, like easier
+code reviews, and better interoperability with other schema dependent graphql tools, so setting this
+up is worthwhile even if you do not need it for generating client types:
+
+```typescript
+import type { CodegenConfig } from '@graphql-codegen/cli';
+
+const config: CodegenConfig = {
+  schema: './path/to/schema.graphql',
+  documents: ['src/**/*.{graphql,ts,tsx}', '!src/gql/**'],
+  generates: {
+    './src/gql/': {
+      preset: 'client',
+      plugins: [],
+    },
+  },
+};
+
+export default config;
+```
+
+### Using introspection from your dev (or production) server [#using-introspection-from-your-dev-or-production-server]
+
+Rather than using a schema SDL file, graphql-code-generator can also use introspection to load
+your schema. To do this, you will need to ensure that your server has introspection enabled and that Codegen can authenticate if the endpoint requires it.
+Introspection defaults depend on the server and its configuration.
+
+You can then configure graphql-code-generator to use introspection by passing the URL to your
+graphql endpoint:
+
+```typescript
+import type { CodegenConfig } from '@graphql-codegen/cli';
+
+const config: CodegenConfig = {
+  schema: 'http://localhost:3000/graphql',
+  documents: ['src/**/*.{graphql,ts,tsx}', '!src/gql/**'],
+  generates: {
+    './src/gql/': {
+      preset: 'client',
+      plugins: [],
+    },
+  },
+};
+
+export default config;
+```

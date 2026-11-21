@@ -1,0 +1,84 @@
+# SchemaBuilder
+URL: /docs/guide/schema-builder
+Create a builder, configure TypeScript types, and build a GraphQL schema.
+
+
+A `SchemaBuilder` registers your types and fields, then builds a GraphQL schema. Create one builder
+for each schema, and share it between the modules that define that schema.
+
+## Creating a builder [#creating-a-builder]
+
+```typescript playground example="types-schema-builder"
+import SchemaBuilder from '@pothos/core';
+
+const builder = new SchemaBuilder<{
+  Context: { requestId: string };
+}>({});
+
+builder.queryType({
+  fields: (t) => ({
+    requestId: t.string({
+      resolve: (_parent, _args, context) => context.requestId,
+    }),
+  }),
+});
+
+export const schema = builder.toSchema();
+```
+
+The generic parameter is an object Pothos calls `SchemaTypes`. Its entries configure TypeScript
+checking; they do not create runtime values. `Context` above types the third argument of each
+resolver. Your server must supply that object when executing a request; see [Context](./context).
+If you do not need to configure any types, use `new SchemaBuilder({})`.
+
+The constructor's options object configures runtime behavior. It can include plugins and their
+options, as described in [Using plugins](./using-plugins), and
+[default nullability](./changing-default-nullability) settings.
+
+The `requestId` resolver returns the value supplied in the runtime context. Declaring its
+TypeScript type does not supply that value.
+
+## Building the schema [#building-the-schema]
+
+Call `builder.toSchema()` after registering your types and fields. It returns a standard
+`GraphQLSchema` that you can pass to a GraphQL server or execute with graphql-js. A schema needs a
+Query root, even when it also defines mutations or subscriptions.
+
+By default, Pothos sorts the schema lexicographically. Use `builder.toSchema({ sortSchema: false })`
+to keep definition order. See the [SchemaBuilder API](../api/schema-builder) for build options and
+[App layout](./app-layout) for registering types from multiple files before building the schema.
+
+## Backing models [#backing-models]
+
+A backing model is the TypeScript type of the data a resolver returns for an object or interface.
+It also determines the `parent` type of that object's field resolvers. It can contain properties
+that are not exposed in GraphQL, while GraphQL fields can compute or load values absent from the
+backing model.
+
+Pothos associates backing models with GraphQL types in three ways:
+
+* **Type references:** `builder.objectRef<T>('Name')` or `builder.interfaceRef<T>('Name')` carries
+  the backing type `T`. Methods that define types also return references you can use elsewhere.
+* **Classes:** Register a class directly when your application already uses class instances as
+  backing data. Pothos uses the class's instance type for resolver checking.
+* **SchemaTypes:** Declare backing models in the builder's `Objects`, `Interfaces`, or `Inputs`
+  maps to reference those types by their string names. These declarations still need corresponding
+  runtime type definitions.
+
+The [Objects](./objects), [Interfaces](./interfaces), and [Input objects](./inputs) guides show
+these alternatives. Using a reference or class does not require adding its backing model to
+`SchemaTypes`.
+
+## Other SchemaTypes entries [#other-schematypes-entries]
+
+The generic can also configure:
+
+* `Scalars`: the values resolvers receive and return for each scalar; see [Scalars](./scalars).
+* `DefaultFieldNullability` and `DefaultInputFieldRequiredness`: defaults for output and input
+  fields. Set their matching constructor options too; see [Default nullability](./changing-default-nullability).
+* `StrictResolveType`: when `true`, unions list their members as a record (or by name), and their
+  `resolveType` must return a member; see [Unions](./unions#strict-resolvetype).
+* Plugin-specific types, such as the context-dependent scopes used by the scope auth plugin.
+
+Each entry is optional unless a plugin requires it. For the complete list, see the
+[SchemaBuilder reference](../api/schema-builder).
