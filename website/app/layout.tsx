@@ -36,7 +36,8 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     siteName: SITE_NAME,
-    url: SITE_URL,
+    // No `url` here: a shared value would make every page claim to be the homepage.
+    // Without it, crawlers fall back to each page's canonical URL.
     locale: 'en_US',
   },
   twitter: {

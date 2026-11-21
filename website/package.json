@@ -7,6 +7,7 @@
     "build": "pnpm run codegen && pnpm run check-playground-refs && pnpm run type:only",
     "next-build": "next build",
     "build-ci": "pnpm turbo run build && pnpm run codegen && pnpm run check-playground-refs && pnpm run type:only && next build",
+    "build:static": "pnpm run codegen && node scripts/build-static.mjs",
     "start": "next start",
     "bundle-types": "tsx scripts/bundle-types.ts",
     "build-examples": "tsx scripts/build-playground-examples.ts",

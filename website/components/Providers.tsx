@@ -2,6 +2,7 @@
 
 import { NextProvider } from 'fumadocs-core/framework/next';
 import { createContext, type ReactNode, useContext, useEffect, useState } from 'react';
+import { FumadocsLink } from './Link';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -90,7 +91,7 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme }}>
-      <NextProvider>{children}</NextProvider>
+      <NextProvider Link={FumadocsLink}>{children}</NextProvider>
     </ThemeContext.Provider>
   );
 }

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { type PluginEntry, pluginDocsHref, pluginPackage } from './plugins';
 
 interface Props {

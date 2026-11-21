@@ -1,9 +1,9 @@
 'use client';
 
 import type * as PageTree from 'fumadocs-core/page-tree';
-import Link from 'next/link';
 import { Fragment, useEffect, useState } from 'react';
 import { ChevronIcon } from '@/components/icons/ChevronIcon';
+import Link from '@/components/Link';
 import { folderContainsPath, isActive, nodeKey } from './utils';
 
 interface NodeProps {

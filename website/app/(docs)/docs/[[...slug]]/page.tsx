@@ -69,6 +69,10 @@ export default async function Page({ params }: { params: Promise<{ slug?: string
   );
 }
 
+// Every docs page is prerendered; answer unknown slugs with the static 404 instead of
+// rendering them on demand (which costs a function call and an ISR write per URL).
+export const dynamicParams = false;
+
 // biome-ignore lint/suspicious/useAwait: this needs to return a promise
 export async function generateStaticParams() {
   return source.getPages().map((page) => ({

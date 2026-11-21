@@ -36,9 +36,15 @@ const ormAliases = Object.fromEntries(
   }),
 );
 
+// `STATIC_EXPORT=1` builds plain files into `out/` for static hosts (GitHub Pages), via
+// `scripts/build-static.mjs`. Static hosts can't run rewrites, headers or redirects, so
+// that script writes the equivalents as files.
+const staticExport = process.env.STATIC_EXPORT === '1';
+
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  ...(staticExport ? { output: 'export', trailingSlash: true, images: { unoptimized: true } } : {}),
   turbopack: {
     resolveAlias: {
       ...Object.fromEntries(

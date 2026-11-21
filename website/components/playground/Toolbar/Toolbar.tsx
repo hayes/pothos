@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import type { ReactNode } from 'react';
+import Link from '@/components/Link';
 import { ThemeToggle } from '@/components/marketing/ThemeToggle';
 import { Wordmark } from '@/components/marketing/Wordmark';
 import { Button } from '../shell/Button';

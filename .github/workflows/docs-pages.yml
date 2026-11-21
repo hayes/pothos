@@ -1,0 +1,45 @@
+name: Deploy docs to GitHub Pages
+
+# Builds the website as static files and publishes them to the `gh-pages` branch,
+# which GitHub Pages serves at pothos-graphql.dev.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: docs-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter '@pothos/website^...' build
+      - run: pnpm --dir website build:static
+        env:
+          # Contributors work with the default token. Listing sponsors needs a personal
+          # token with `read:user`; without one the page shows its curated fallback.
+          GITHUB_TOKEN: ${{ secrets.SPONSORS_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+      - name: Publish to gh-pages
+        working-directory: website/out
+        run: |
+          git init -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Deploy docs from ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
