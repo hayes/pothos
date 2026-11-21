@@ -1,10 +1,10 @@
 'use client';
 
-import Link from 'next/link';
 import { useState } from 'react';
 import { CloseIcon } from '@/components/icons/CloseIcon';
 import { GitHubIcon } from '@/components/icons/GitHubIcon';
 import { HamburgerIcon } from '@/components/icons/HamburgerIcon';
+import Link from '@/components/Link';
 import { DocsSearchProvider } from './DocsSearchProvider';
 import { SearchButton } from './SearchButton';
 import { ThemeToggle } from './ThemeToggle';

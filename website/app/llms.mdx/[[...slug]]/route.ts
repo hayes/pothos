@@ -11,6 +11,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
   }
   return new NextResponse(await getLLMText(page));
 }
+// Every docs page is prerendered; answer unknown slugs with the static 404 instead of
+// rendering them on demand (which costs a function call and an ISR write per URL).
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   return source.generateParams();
 }
