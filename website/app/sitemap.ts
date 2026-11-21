@@ -1,6 +1,8 @@
 import type { MetadataRoute } from 'next';
 import { source } from '@/app/source';
 
+export const dynamic = 'force-static';
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://pothos-graphql.dev';
 
 // Top-level routes that aren't part of the fumadocs page tree. `/docs`
