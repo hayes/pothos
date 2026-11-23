@@ -194,21 +194,23 @@ describe('loader map', () => {
     expect(getLoaderMapping(ctx, execution()(pathOf('users', 1, 'posts')), 'User')).toBe(null);
   });
 
-  it('tells executions apart by their abort signal getter where graphql-js 17 passes one', () => {
-    // graphql-js 17 hands every event of a subscription the variables of its `subscribe`.
-    const variableValues = {};
-    const event = () => {
-      const getAbortSignal = () => undefined;
-      const payload = execution(variableValues);
-
-      return (path: Path) => ({ ...payload(path), getAbortSignal }) as GraphQLResolveInfo;
-    };
+  it('shares an execution across resolvers whatever abort signal getter each is handed', () => {
+    // @graphql-tools/executor 2 (Yoga on graphql 17) builds a new `getAbortSignal` for every
+    // resolver, all returning the caller's signal, which every event of a subscription shares.
+    const signal = new AbortController().signal;
+    const payload = execution({});
+    const resolver = (path: Path) =>
+      ({ ...payload(path), getAbortSignal: () => signal }) as GraphQLResolveInfo;
     const ctx = {};
-    const first = event();
     const planned: Mapping = { nested: {} };
-    setLoaderMappings(ctx, first(pathOf('user')), { 'User@posts': planned });
-    expect(getLoaderMapping(ctx, first(pathOf('user', 'posts')), 'User')).toBe(planned);
-    expect(getLoaderMapping(ctx, event()(pathOf('user', 'posts')), 'User')).toBe(null);
+    const users = linked(undefined, 'users');
+    setLoaderMappings(ctx, resolver(users), { 'User@posts': planned });
+    expect(getLoaderMapping(ctx, resolver(linked(users, 0, 'posts')), 'User')).toBe(planned);
+    expect(getLoaderMapping(ctx, resolver(linked(users, 1, 'posts')), 'User')).toBe(planned);
+    // The next event shares the signal and the variables, but has a path chain of its own.
+    expect(
+      getLoaderMapping(ctx, resolver(linked(linked(undefined, 'users'), 0, 'posts')), 'User'),
+    ).toBe(null);
   });
 
   it('tells executions apart by their root path link where the variables are shared', () => {
@@ -295,27 +297,17 @@ describe('loader map', () => {
 
 describe('forExecution', () => {
   it('gives each subscription event its own entries where the variables are shared', () => {
-    const variableValues = {};
-    // graphql-js 17: a getter of its own for each event.
-    const event = () => {
-      const getAbortSignal = () => undefined;
-      const payload = execution(variableValues);
-
-      return (path: Path) => ({ ...payload(path), getAbortSignal }) as GraphQLResolveInfo;
-    };
+    const info = execution({});
+    // graphql-js and @graphql-tools/executor: a path chain of its own for each event.
     const cache = new WeakMap<object, Map<string, number>>();
-    const first = event();
-    const second = event();
+    const first = linked(undefined, 'user');
+    const second = linked(undefined, 'user');
 
-    expect(forExecution(cache, first(pathOf('user')))).toBe(
-      forExecution(cache, first(pathOf('user', 'posts'))),
+    expect(forExecution(cache, info(first))).toBe(
+      forExecution(cache, info(linked(first, 'posts'))),
     );
-    expect(forExecution(cache, second(pathOf('user')))).not.toBe(
-      forExecution(cache, first(pathOf('user'))),
-    );
-    expect(forOperation(cache, second(pathOf('user')))).toBe(
-      forOperation(cache, first(pathOf('user'))),
-    );
+    expect(forExecution(cache, info(second))).not.toBe(forExecution(cache, info(first)));
+    expect(forOperation(cache, info(second))).toBe(forOperation(cache, info(first)));
   });
 
   it('tells events apart by their root path link where an executor passes no signal', () => {

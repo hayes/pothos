@@ -1,4 +1,4 @@
-import { subscribe as toolsSubscribe } from '@graphql-tools/executor';
+import { execute as toolsExecute, subscribe as toolsSubscribe } from '@graphql-tools/executor';
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '@pothos/plugin-relay';
 import { type DocumentNode, execute, type GraphQLSchema, parse, subscribe } from 'graphql';
@@ -51,6 +51,10 @@ builder.queryType({
     user: t.prismaField({
       type: 'User',
       resolve: (query) => prisma.user.findUniqueOrThrow({ ...query, where: { id: 1 } }),
+    }),
+    users: t.prismaField({
+      type: ['User'],
+      resolve: (query) => prisma.user.findMany({ ...query, take: 3, orderBy: { id: 'asc' } }),
     }),
     rawUser: t.field({
       type: User,
@@ -151,6 +155,30 @@ function drafts(result: unknown) {
 
 afterAll(async () => {
   await prisma.$disconnect();
+});
+
+// @graphql-tools/executor 2 (Yoga on graphql 17) hands every resolver a `getAbortSignal` of its own,
+// so the rows of one execution must be found by something every resolver in it shares (#1858).
+describe.each([
+  ['graphql-js', execute],
+  ['@graphql-tools/executor', toolsExecute as typeof execute],
+])('a query through %s', (_, executeWith) => {
+  it('resolves the relations of every row from the query its root field planned', async () => {
+    queries.length = 0;
+
+    const result = await executeWith({
+      schema,
+      document: parse(
+        '{ users { publishedPosts { published author { allPosts { published } } } } }',
+      ),
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect((result.data as { users: unknown[] }).users).toHaveLength(3);
+    expect(drafts(result)).toBeGreaterThan(0);
+    expect(queries).toHaveLength(1);
+  });
 });
 
 describe('executions sharing a context', () => {

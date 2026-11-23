@@ -1,4 +1,4 @@
-import { subscribe as toolsSubscribe } from '@graphql-tools/executor';
+import { execute as toolsExecute, subscribe as toolsSubscribe } from '@graphql-tools/executor';
 import SchemaBuilder from '@pothos/core';
 import { type DocumentNode, execute, type GraphQLSchema, parse, subscribe } from 'graphql';
 import { describe, expect, it, vi } from 'vitest';
@@ -771,6 +771,20 @@ describe('reload isolation', () => {
         contextValue,
       }),
     ).toEqual(published);
+  });
+
+  // @graphql-tools/executor 2 (Yoga on graphql 17) hands every resolver a `getAbortSignal` of its
+  // own, so the rows of one execution must be found by something every resolver shares (#1858).
+  it.each([
+    ['graphql-js', execute],
+    ['@graphql-tools/executor', toolsExecute as typeof execute],
+  ])("resolves every row's relations from its root field's query through %s", async (_, executeWith) => {
+    const result = await run(isolationSchema(), '{ users { name publishedPosts { id } } }', {
+      execute: executeWith,
+    });
+    expect(result.errors).toBeUndefined();
+    expect(result.data.users.length).toBeGreaterThan(1);
+    expect(result.statements).toHaveLength(1);
   });
 
   // graphql-js gives each event its own `variableValues` (16) or `getAbortSignal` (17), while

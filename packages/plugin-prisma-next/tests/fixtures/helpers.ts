@@ -151,11 +151,17 @@ interface RunResult {
 export async function run(
   schema: GraphQLSchema,
   source: string,
-  options: { variables?: Record<string, unknown>; context?: object } = {},
+  options: {
+    variables?: Record<string, unknown>;
+    context?: object;
+    /** The executor to run it with, such as @graphql-tools/executor's. Defaults to graphql-js. */
+    execute?: typeof execute;
+  } = {},
 ): Promise<RunResult> {
   const statements: CapturedExecution[] = [];
+  const executeWith = options.execute ?? execute;
   const result: ExecutionResult = await withCapture(statements, async () =>
-    execute({
+    executeWith({
       schema,
       document: parse(source),
       variableValues: options.variables,

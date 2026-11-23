@@ -1,4 +1,4 @@
-import { subscribe as toolsSubscribe } from '@graphql-tools/executor';
+import { execute as toolsExecute, subscribe as toolsSubscribe } from '@graphql-tools/executor';
 import SchemaBuilder from '@pothos/core';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
@@ -47,6 +47,10 @@ builder.queryType({
     user: t.drizzleField({
       type: User,
       resolve: (query) => db.query.users.findFirst(query({ where: { id: 1 } })),
+    }),
+    users: t.drizzleField({
+      type: [User],
+      resolve: (query) => db.query.users.findMany(query({ limit: 3, orderBy: { id: 'asc' } })),
     }),
     rawUser: t.field({
       type: User,
@@ -155,6 +159,30 @@ const schema = builder.toSchema();
 function drafts(result: unknown) {
   return JSON.stringify(result).match(/"published":0/g)?.length ?? 0;
 }
+
+// @graphql-tools/executor 2 (Yoga on graphql 17) hands every resolver a `getAbortSignal` of its own,
+// so the rows of one execution must be found by something every resolver in it shares (#1858).
+describe.each([
+  ['graphql-js', execute],
+  ['@graphql-tools/executor', toolsExecute as typeof execute],
+])('a query through %s', (_, executeWith) => {
+  it('resolves the relations of every row from the query its root field planned', async () => {
+    clearDrizzleLogs();
+
+    const result = await executeWith({
+      schema,
+      document: parse(
+        '{ users { publishedPosts { published author { allPosts { published } } } } }',
+      ),
+      contextValue: {},
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect((result.data as { users: unknown[] }).users).toHaveLength(3);
+    expect(drafts(result)).toBeGreaterThan(0);
+    expect(drizzleLogs).toHaveLength(1);
+  });
+});
 
 describe('executions sharing a context', () => {
   it('keeps the relation filter on rows a later operation loaded elsewhere', async () => {
