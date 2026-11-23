@@ -1,5 +1,12 @@
 # Change Log
 
+## 4.17.4
+
+### Patch Changes
+
+- Updated dependencies [3f99569]
+  - @pothos/selection-mapper@0.3.1
+
 ## 4.17.3
 
 ### Patch Changes
