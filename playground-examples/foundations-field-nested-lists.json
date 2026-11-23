@@ -1,0 +1,26 @@
+{
+  "id": "foundations-field-nested-lists",
+  "title": "Nested list fields",
+  "description": "Run the query to see two lists and one null list item. Change one inner list, then inspect its result and the generated GraphQL type.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/fields"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\n\nbuilder.queryType({\n  fields: (t) => ({\n    example: t.field({\n      type: t.listRef(\n        t.listRef('String'),\n        // items are non-nullable by default, this can be overridden\n        // by passing `nullable: true`\n        { nullable: true },\n      ),\n      resolve: () => {\n        return [['a', 'b'], ['c', 'd'], null];\n      },\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query NestedLists {\n  example\n}\n",
+  "queries": [
+    {
+      "title": "Nested lists",
+      "query": "query NestedLists {\n  example\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

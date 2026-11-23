@@ -1,0 +1,40 @@
+{
+  "id": "architecture-layout",
+  "title": "File layout",
+  "description": "Run the user query, then change Alex in schema/user.ts and run it again.",
+  "category": "patterns",
+  "relatedDocs": [
+    "/docs/guide/app-layout"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "// src/schema.ts\nimport { builder } from './builder';\nimport './schema/user';\n\nbuilder.queryType({});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "builder.ts",
+      "content": "// src/builder.ts\nimport SchemaBuilder from '@pothos/core';\n\nexport const builder = new SchemaBuilder({});\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "schema/user.ts",
+      "content": "// src/schema/user.ts\nimport { builder } from '../builder';\nimport type { User as UserModel } from '../types';\n\nexport const User = builder.objectRef<UserModel>('User').implement({\n  fields: (t) => ({\n    id: t.exposeID('id'),\n    name: t.exposeString('name'),\n  }),\n});\n\nbuilder.queryField('user', (t) =>\n  t.field({\n    type: User,\n    resolve: () => ({ id: '1', name: 'Alex' }),\n  }),\n);\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "types.ts",
+      "content": "// src/types.ts\nexport interface User {\n  id: string;\n  name: string;\n}\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "{\n  user {\n    id\n    name\n  }\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "{\n  user {\n    id\n    name\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ]
+}

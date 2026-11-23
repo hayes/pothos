@@ -1,0 +1,6 @@
+User-Agent: *
+Allow: /
+Disallow: /api/
+
+Host: https://pothos-graphql.dev
+Sitemap: https://pothos-graphql.dev/sitemap.xml

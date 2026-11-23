@@ -1,0 +1,72 @@
+# Interfaces
+URL: /docs/plugins/prisma/interfaces
+Creating interfaces for prisma models that can be shared by variants
+
+
+`builder.prismaInterface` works just like builder.prismaObject and can be used to define either the
+primary type or a variant for a model.
+
+The following example creates a `User` interface, and 2 variants Admin and Member. The `resolveType`
+method returns the typenames as strings to avoid issues with circular references.
+
+```typescript
+const User = builder.prismaInterface('User', {
+  name: 'User',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+  }),
+  resolveType: (user) => {
+    return user.isAdmin ? 'Admin' : 'Member';
+  },
+});
+
+builder.prismaObject('User', {
+  variant: 'Admin',
+  interfaces: [User],
+  fields: (t) => ({
+    isAdmin: t.exposeBoolean('isAdmin'),
+  }),
+});
+
+builder.prismaObject('User', {
+  variant: 'Member',
+  interfaces: [User],
+  fields: (t) => ({
+    bio: t.exposeString('bio'),
+  }),
+});
+```
+
+When using select mode, it's recommended to add selections to both the interface and the object
+types that implement them. Selections are not inherited and will fallback to the default selection
+which includes all scalar columns.
+
+You will not be able to extend an interface for a different prisma model, doing so will result in an
+error at build time.
+
+## Selecting a viewer implementation [#selecting-a-viewer-implementation]
+
+The [writing desk](./variants#the-authors-writing-desk) uses a Viewer interface for the signed-in
+author and two object variants for account capabilities. Its type-level selection includes the
+discriminator (`isAdmin`) used by `resolveType`. Each implementation also selects the fields
+required by that interface; configuring a selection on the interface does not replace the
+implementation's selection.
+
+```graphql
+query WritingDesk {
+  me {
+    __typename
+    drafts {
+      title
+    }
+    ... on EditorViewer {
+      canReviewSubmissions
+    }
+  }
+}
+```
+
+The editor result includes `canReviewSubmissions: true`. An author result has no field from that
+fragment, while retaining the interface's `drafts` field. This keeps the public User type separate
+from account-specific capabilities.

@@ -1,0 +1,26 @@
+{
+  "id": "plugin-tracing-options",
+  "title": "Choose tracing labels",
+  "description": "Run the greeting and inspect its greeting label in Console. Change the label in schema.ts and run again.",
+  "category": "plugins",
+  "relatedDocs": [
+    "/docs/plugins/tracing"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport TracingPlugin, { isRootField, wrapResolver } from '@pothos/plugin-tracing';\n\nconst builder = new SchemaBuilder<{\n  Tracing: boolean | { label: string };\n}>({\n  plugins: [TracingPlugin],\n  tracing: {\n    default: (config) => isRootField(config),\n    wrap: (resolver, options, config) =>\n      wrapResolver(resolver, (error, duration) => {\n        const label =\n          typeof options === 'object' ? options.label : `${config.parentType}.${config.name}`;\n        console.log(`${label}: ${duration}ms`, error);\n      }),\n  },\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    hello: t.string({\n      tracing: { label: 'greeting' },\n      args: { name: t.arg.string() },\n      resolve: (_parent, { name }) => `hello, ${name ?? 'World'}`,\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Greeting {\n  hello(name: \"Pothos\")\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query Greeting {\n  hello(name: \"Pothos\")\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

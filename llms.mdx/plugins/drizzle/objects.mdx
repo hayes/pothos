@@ -1,0 +1,161 @@
+# Drizzle Objects
+URL: /docs/plugins/drizzle/objects
+Defining GraphQL object types based on drizzle tables
+
+
+Use the [configured builder](./setup) to map a Drizzle table to a GraphQL type. Defining a type
+registers its fields; a root lookup makes them queryable.
+
+## Defining Objects [#defining-objects]
+
+The `builder.drizzleObject` method can be used to define GraphQL Object types based on a drizzle
+table:
+
+```ts
+const User = builder.drizzleObject('users', {
+  name: 'User',
+  fields: (t) => ({
+    firstName: t.exposeString('firstName'),
+    lastName: t.exposeString('lastName'),
+  }),
+});
+```
+
+You will be able to "expose" any column in the table, and GraphQL fields do not need to match the
+names of the columns in your database. The returned `User` can be used like any other `ObjectRef`
+in Pothos.
+
+The example uses `builder.drizzleNode`, which adds a Relay ID and node refetching to the
+same object API. See [Relay](./relay) for node IDs and refetching.
+
+## Custom fields [#custom-fields]
+
+A GraphQL field can combine several columns. The author’s full name declares both columns in
+its selection and computes the string from the loaded row:
+
+```typescript playground example="plugin-drizzle" query="{ author(id: 1) { fullName } }"
+fullName: t.string({
+  select: { columns: { firstName: true, lastName: true } },
+  resolve: (user) => `${user.firstName} ${user.lastName}`,
+}),
+```
+
+This field belongs in User's `fields` callback. With the default type selection, all scalar
+columns are available; with `select: {}`, computed fields must declare what they read.
+[Selections](./selections) explains when those columns and relations are loaded.
+
+## Drizzle Fields [#drizzle-fields]
+
+`t.drizzleField` can return a Drizzle object from Query or from any other object type. Its
+resolver receives a `query` function before the usual resolver arguments. Call that function and
+pass its result to `findFirst` or `findMany`: it merges your filters and ordering with the
+requirements of the GraphQL selection.
+
+### A nullable author lookup [#a-nullable-author-lookup]
+
+The author page accepts an integer ID. A missing author returns null, matching the result of
+`findFirst` and the field's `nullable: true` option:
+
+```typescript playground example="plugin-drizzle"
+builder.queryType({
+  fields: (t) => ({
+    author: t.drizzleField({
+      type: 'users',
+      nullable: true,
+      args: { id: t.arg.int({ required: true }) },
+      resolve: (query, _root, args) => {
+        return db.query.users.findFirst(
+          query({
+            where: { id: args.id },
+          }),
+        );
+      },
+    }),
+  }),
+});
+```
+
+`author(id: 1) { fullName }` returns Maya Chen. `author(id: 999) { fullName }` returns null.
+Adding `posts { title }` loads the public posts through the same root resolver.
+
+For a list field, use `type: ['users']` and `db.query.users.findMany(query())`. A plain lookup
+without arguments can pass no options to `query`; fields with filters pass those options to it.
+If the `with` you pass to `query` names a relation the type's `select` also loads, the arguments
+from the type's `select` are used for that relation.
+
+### `drizzleFieldWithInput` [#drizzlefieldwithinput]
+
+With the [with-input plugin](https://pothos-graphql.dev/docs/plugins/with-input),
+`t.drizzleFieldWithInput` combines `t.drizzleField` with `t.fieldWithInput`. The `input` fields
+become an input object argument, and the resolver still receives the `query` function as its first
+argument. This alternative adds an `authorWithInput` lookup to the same public User type.
+Install and register WithInputPlugin as described in [Setup](./setup#integration-with-other-plugins):
+
+```ts
+builder.queryFields((t) => ({
+  authorWithInput: t.drizzleFieldWithInput({
+    type: 'users',
+    nullable: true,
+    input: {
+      id: t.input.int({ required: true }),
+    },
+    resolve: (query, root, args, ctx) => {
+      return db.query.users.findFirst(
+        query({
+          where: { id: args.input.id },
+        }),
+      );
+    },
+  }),
+}));
+```
+
+## Building a query from resolve info [#building-a-query-from-resolve-info]
+
+Use `t.drizzleQueryFromInfo` inside a regular field resolver to combine its GraphQL selection
+with Drizzle query options. Pass a table name or Drizzle object/interface ref, along with the
+resolver's `context` and `info`. Pass the result directly to Drizzle:
+
+```ts
+builder.queryFields((t) => ({
+  user: t.field({
+    type: User,
+    nullable: true,
+    args: { id: t.arg.int({ required: true }) },
+    resolve: (_root, args, context, info) =>
+      db.query.users.findFirst(
+        t.drizzleQueryFromInfo('users', {
+          context,
+          info,
+          columns: { id: true },
+          where: { id: args.id },
+        }),
+      ),
+  }),
+}));
+```
+
+Pass `path: ['user']` when the resolver returns a payload containing a `user` field. `paths`
+accepts multiple paths. Use a Drizzle ref instead of a table name to select a specific variant
+of that table's GraphQL type.
+
+The field builder checks the context and query options against its schema and table. Explicit
+columns and relations retain their types; omitted columns are not statically guaranteed, even
+if the GraphQL selection loads them. Put filters, selections, ordering, and limits inside the
+helper call so they are merged with the planned selection.
+
+With `AsyncSelections: true`, await the result before passing it to Drizzle:
+
+```ts
+resolve: async (_root, args, context, info) =>
+  db.query.users.findFirst(
+    await t.drizzleQueryFromInfo('users', {
+      context,
+      info,
+      where: { id: args.id },
+    }),
+  ),
+```
+
+Without `AsyncSelections`, the helper is typed as synchronous, consistent with the schema's
+selection callbacks. There is no per-call async option.

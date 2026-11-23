@@ -1,0 +1,39 @@
+{
+  "id": "plugin-validation",
+  "title": "Validate before writing",
+  "description": "Run the valid, invalid, and saved-names operations in order: the name is trimmed to Leia, and rejected input adds nothing. Change the minimum name length from 3 to 5 to reject the valid input. Reset clears saved data before repeating.",
+  "category": "plugins",
+  "relatedDocs": [
+    "/docs/plugins/validation",
+    "/docs/plugins/errors"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport ErrorsPlugin from '@pothos/plugin-errors';\nimport ValidationPlugin, {\n  InputValidationError,\n  type StandardSchemaV1,\n} from '@pothos/plugin-validation';\nimport { z } from 'zod';\n\n// This public example deliberately exposes validation details before authorization.\nconst builder = new SchemaBuilder({\n  plugins: [ErrorsPlugin, ValidationPlugin],\n  errors: { unsafelyHandleInputErrors: true },\n});\nconst names: string[] = [];\nconst Issue = builder.objectRef<StandardSchemaV1.Issue>('ValidationIssue').implement({\n  fields: (t) => ({\n    message: t.exposeString('message'),\n    path: t.stringList({\n      resolve: (issue) =>\n        issue.path?.map((part) => String(typeof part === 'object' ? part.key : part)) ?? [],\n    }),\n  }),\n});\nbuilder.objectType(InputValidationError, {\n  name: 'InputValidationError',\n  fields: (t) => ({ issues: t.field({ type: [Issue], resolve: (error) => error.issues }) }),\n});\nbuilder.queryType({ fields: (t) => ({ savedNames: t.stringList({ resolve: () => names }) }) });\nconst Registration = builder.inputType('Registration', {\n  fields: (t) => ({\n    name: t.string({ required: true }).validate(z.string().trim().min(3, 'Name is too short')),\n    email: t.string({ required: true, validate: z.email('Enter a valid email') }),\n  }),\n});\nbuilder.mutationType({\n  fields: (t) => ({\n    register: t.string({\n      args: { input: t.arg({ type: Registration, required: true }) },\n      errors: { types: [InputValidationError] },\n      resolve: (_, { input }) => {\n        names.push(input.name);\n        return input.name;\n      },\n    }),\n  }),\n});\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "mutation Register {\n  register(input: { name: \"  Leia  \", email: \"leia@example.com\" }) {\n    __typename\n    ... on MutationRegisterSuccess {\n      data\n    }\n    ... on InputValidationError {\n      issues {\n        message\n        path\n      }\n    }\n  }\n}\n",
+  "queries": [
+    {
+      "title": "01-valid",
+      "query": "mutation Register {\n  register(input: { name: \"  Leia  \", email: \"leia@example.com\" }) {\n    __typename\n    ... on MutationRegisterSuccess {\n      data\n    }\n    ... on InputValidationError {\n      issues {\n        message\n        path\n      }\n    }\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "02-invalid",
+      "query": "mutation Register {\n  register(input: { name: \"Li\", email: \"invalid\" }) {\n    __typename\n    ... on MutationRegisterSuccess {\n      data\n    }\n    ... on InputValidationError {\n      issues {\n        message\n        path\n      }\n    }\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "03-no-rejected-write",
+      "query": "query SavedNames {\n  savedNames\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

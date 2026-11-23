@@ -1,0 +1,26 @@
+{
+  "id": "plugin-add-graphql-types",
+  "title": "Import selected types",
+  "description": "Run SelectedTypes to read Leia through the imported User type. Change the user resolver to return Luke and rerun. Reset example restores Leia.",
+  "category": "plugins",
+  "relatedDocs": [
+    "/docs/plugins/add-graphql"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport AddGraphQLPlugin from '@pothos/plugin-add-graphql';\nimport { GraphQLObjectType, GraphQLString } from 'graphql';\n\ntype User = { name: string };\n\nconst ExistingUser = new GraphQLObjectType<User>({\n  name: 'User',\n  fields: { name: { type: GraphQLString } },\n});\n\nconst builder = new SchemaBuilder<{ Objects: { User: User } }>({\n  plugins: [AddGraphQLPlugin],\n  add: { types: [ExistingUser] },\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    user: t.field({ type: 'User', resolve: () => ({ name: 'Leia' }) }),\n  }),\n});\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query SelectedTypes {\n  user {\n    name\n  }\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query SelectedTypes {\n  user {\n    name\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

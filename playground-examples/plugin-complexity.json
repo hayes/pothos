@@ -1,0 +1,56 @@
+{
+  "id": "plugin-complexity",
+  "title": "Enforce a query cost budget",
+  "description": "Run the operations in order. Allowed costs 7; Estimate reports costs 7 and 21. Rejected, TooDeep and TooBroad fail before the posts resolver, so Calls stays at 1. Change Rejected limit 16 to 15: cost 20 is accepted and the counter increases. Reset example clears the counter before repeating the sequence.",
+  "category": "plugins",
+  "relatedDocs": [
+    "/docs/plugins/complexity"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport ComplexityPlugin, { complexityFromQuery } from '@pothos/plugin-complexity';\nimport { parse } from 'graphql';\n\nconst builder = new SchemaBuilder({\n  plugins: [ComplexityPlugin],\n  complexity: {\n    defaultComplexity: 1,\n    defaultListMultiplier: 10,\n    limit: { complexity: 20, depth: 3, breadth: 5 },\n  },\n});\n\nconst Post = builder.objectRef<{ title: string }>('Post');\nPost.implement({\n  fields: (t) => ({\n    title: t.exposeString('title'),\n    related: t.field({ type: Post, resolve: (post) => post }),\n  }),\n});\nconst posts = [{ title: 'First post' }, { title: 'Second post' }];\nlet resolverCalls = 0;\n\nbuilder.queryType({\n  fields: (t) => ({\n    posts: t.field({\n      type: [Post],\n      args: { limit: t.arg.int({ defaultValue: 2 }) },\n      complexity: (args) => ({ field: 5, multiplier: Math.max(0, args.limit ?? 2) }),\n      resolve: (_parent, args) => {\n        resolverCalls += 1;\n        return posts.slice(0, Math.max(0, args.limit ?? 2));\n      },\n    }),\n    resolverCalls: t.int({ resolve: () => resolverCalls }),\n    estimatedCost: t.int({\n      args: { limit: t.arg.int({ required: true }) },\n      resolve: (_parent, { limit }) =>\n        complexityFromQuery(parse('query Cost($limit: Int!) { posts(limit: $limit) { title } }'), {\n          schema,\n          variables: { limit },\n          ctx: {},\n        }).complexity,\n    }),\n  }),\n});\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Allowed {\n  posts(limit: 2) {\n    title\n  }\n}\n",
+  "queries": [
+    {
+      "title": "01-allowed",
+      "query": "query Allowed {\n  posts(limit: 2) {\n    title\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "02-estimate",
+      "query": "query Estimate {\n  accepted: estimatedCost(limit: 2)\n  rejected: estimatedCost(limit: 16)\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "03-rejected",
+      "query": "query Rejected {\n  posts(limit: 16) {\n    title\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "04-depth",
+      "query": "query TooDeep {\n  posts(limit: 1) {\n    related {\n      related {\n        title\n      }\n    }\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "05-breadth",
+      "query": "query TooBroad {\n  posts(limit: 1) {\n    a: title\n    b: title\n    c: title\n    d: title\n    e: title\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "06-resolver-calls",
+      "query": "query Calls {\n  resolverCalls\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

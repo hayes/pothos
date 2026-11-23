@@ -1,0 +1,227 @@
+# Indirect relations
+URL: /docs/plugins/prisma/indirect-relations
+Indirect relations and join tables
+
+
+## Selecting fields from a nested GraphQL field [#selecting-fields-from-a-nested-graphql-field]
+
+By default, the `nestedSelection` function will return selections based on the type of the current
+field. `nestedSelection` can also be used to get a selection from a field nested deeper inside other
+fields. This is useful if the field returns a type that is not a `prismaObject`, but a field nested
+inside the returned type is.
+
+```typescript
+import type { Post } from '../lib/prisma/client';
+
+const PostRef = builder.prismaObject('Post', {
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    content: t.exposeString('content', { nullable: true }),
+    author: t.relation('author'),
+  }),
+});
+
+const PostPreview = builder.objectRef<Post>('PostPreview').implement({
+  fields: (t) => ({
+    post: t.field({
+      type: PostRef,
+      resolve: (post) => post,
+    }),
+    preview: t.string({
+      nullable: true,
+      resolve: (post) => post.content?.slice(0, 10),
+    }),
+  }),
+});
+
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    postPreviews: t.field({
+      select: (args, ctx, nestedSelection) => ({
+        posts: nestedSelection(
+          {
+            // limit the number of postPreviews to load
+            take: 2,
+          },
+          // Look at the selections in postPreviews.post to determine what relations/fields to select
+          ['post'],
+          // (optional) If the field returns a union or interface, you can pass a typeName to get selections for a specific object type
+          'Post',
+        ),
+      }),
+      type: [PostPreview],
+      resolve: (user) => user.posts,
+    }),
+  }),
+});
+```
+
+`nestedSelection` returns the relation query for the type it selected, which for a `Post` is
+`{ select?, include?, where?, orderBy?, take?, skip?, cursor? }`. Any keys you pass in are kept as
+they were given, so a `select` passed to `nestedSelection` will still narrow the parent's shape.
+With no argument, or with `true`, it returns the planned selection on its own.
+
+### Pinning a type in the path [#pinning-a-type-in-the-path]
+
+The `path` is followed through fragments, so a segment is found whether the field is selected
+directly, or under a fragment on an implementation of the field's type. When several
+implementations share the same field name, a segment can be written as `{ name, type }` to name the
+implementation the field must be found under. Only selections of that field under a fragment on
+that type, or one of its subtypes, will be planned:
+
+```typescript
+builder.prismaObject('User', {
+  fields: (t) => ({
+    entries: t.field({
+      type: [Entry],
+      select: (args, ctx, nestedSelection) => ({
+        // Plan what `post` selects under `... on PostEntry`, not under other implementations
+        posts: nestedSelection({ take: 2 }, [{ name: 'post', type: 'PostEntry' }]),
+      }),
+      resolve: (user) => {
+        return user.posts.map((post) => ({ kind: 'post', post }));
+      },
+    }),
+  }),
+});
+```
+
+The same segments can be used in `queryFromInfo`'s `path` and `paths` options. The type is exported
+as `PathSegment`.
+
+### Selecting as a specific type [#selecting-as-a-specific-type]
+
+When the field returns an interface or union, the third argument names the object type the
+selection should be read as. Its type-level selection and the fields selected under a fragment on
+it are planned, and fragments on other types are left out. With an empty path, this applies to the
+field's own return type:
+
+```typescript
+// Activity is a union of Post and Comment
+builder.prismaObject('User', {
+  fields: (t) => ({
+    recentActivity: t.field({
+      type: [Activity],
+      select: (args, ctx, nestedSelection) => ({
+        // What the query selects under `... on Post`, as a query for the posts relation
+        posts: nestedSelection({ take: 5 }, [], 'Post'),
+        // and under `... on Comment`, for the comments relation
+        comments: nestedSelection({ take: 5 }, [], 'Comment'),
+      }),
+      resolve: (user) => [...user.posts, ...user.comments],
+    }),
+  }),
+});
+```
+
+## Indirect relations (eg. Join tables) [#indirect-relations-eg-join-tables]
+
+If you want to define a GraphQL field that directly exposes data from a nested relationship (many to
+many relations using a custom join table is a common example of this) you can use the
+`nestedSelection` function passed to `select`.
+
+Given a prisma schema like the following:
+
+```
+model Post {
+  id        Int         @id @default(autoincrement())
+  title     String
+  content   String
+  media     PostMedia[]
+}
+
+model Media {
+  id           Int         @id @default(autoincrement())
+  url          String
+  posts        PostMedia[]
+  uploadedBy   User        @relation(fields: [uploadedById], references: [id])
+  uploadedById Int
+}
+
+model PostMedia {
+  id      Int   @id @default(autoincrement())
+  post    Post  @relation(fields: [postId], references: [id])
+  media   Media @relation(fields: [mediaId], references: [id])
+  postId  Int
+  mediaId Int
+}
+```
+
+You can define a media field that can pre-load the correct relations based on the graphql query:
+
+```typescript
+const PostWithMedia = builder.prismaObject('Post', {
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    media: t.field({
+      select: (args, ctx, nestedSelection) => ({
+        media: {
+          select: {
+            // This will look at what fields are queried on Media
+            // and automatically select uploadedBy if that relation is requested
+            media: nestedSelection(
+              // This argument is the default query for the media relation
+              // It could be something like: `{ select: { id: true } }` instead
+              true,
+            ),
+          },
+        },
+      }),
+      type: [Media],
+      resolve: (post) => {
+        return post.media.map(({ media }) => media);
+      },
+    }),
+  }),
+});
+
+const Media = builder.prismaObject('Media', {
+  select: {
+    id: true,
+  },
+  fields: (t) => ({
+    url: t.exposeString('url'),
+    uploadedBy: t.relation('uploadedBy'),
+  }),
+});
+```
+
+## Shared media on published posts [#shared-media-on-published-posts]
+
+The publishing schema stores attachment rows in PostMedia, but clients request Media objects.
+`nestedSelection` follows the media field's selection through that join, including the uploader
+when requested:
+
+```typescript
+const Post = builder.prismaNode('Post', {
+  nullable: true,
+  id: { field: 'id' },
+  select: { id: true },
+  // Node refetches must apply the same visibility rule as root fields.
+  findUnique: (id, context) => ({
+    id: Number(id),
+    OR: [{ published: true }, { authorId: context.userId }],
+  }),
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    published: t.exposeBoolean('published'),
+    author: t.relation('author'),
+    comments: t.relation('comments', { query: { orderBy: { id: 'asc' } } }),
+    media: t.field({
+      type: [Media],
+      select: (_args, _ctx, nestedSelection) => ({
+        media: { orderBy: { id: 'asc' }, select: { media: nestedSelection(true) } },
+      }),
+      resolve: (post) => {
+        return post.media.map(({ media }) => media);
+      },
+    }),
+  }),
+});
+```
+
+Both “Starting a seed library” and “A guide to composting” attach the same image, uploaded by Leo.
+Querying `posts { title media { url uploadedBy { name } } }` through Maya's author page returns
+that uploader for both posts. The GraphQL shape need not expose the join table just because the
+database uses one.

@@ -1,0 +1,32 @@
+{
+  "id": "foundations-inputs-named",
+  "title": "Input shapes registered by name",
+  "description": "Run Create, then Read. This schema uses the Inputs map and the name GiraffeInput instead of an input ref. Reset example empties the store.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/inputs"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\ntype Giraffe = {\n  name: string;\n  birthdate: string;\n  height: number;\n};\n\nconst builder = new SchemaBuilder<{\n  Inputs: {\n    GiraffeInput: Giraffe;\n  };\n}>({});\nconst giraffes: Giraffe[] = [];\n\nconst GiraffeRef = builder.objectRef<Giraffe>('Giraffe').implement({\n  fields: (t) => ({\n    name: t.exposeString('name'),\n    birthdate: t.exposeString('birthdate'),\n    height: t.exposeFloat('height'),\n  }),\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    giraffes: t.field({ type: [GiraffeRef], resolve: () => giraffes }),\n  }),\n});\n\nbuilder.inputType('GiraffeInput', {\n  fields: (t) => ({\n    name: t.string({ required: true }),\n    birthdate: t.string({ required: true }),\n    height: t.float({ required: true }),\n  }),\n});\n\nbuilder.mutationType({\n  fields: (t) => ({\n    createGiraffe: t.field({\n      type: GiraffeRef,\n      args: {\n        input: t.arg({ type: 'GiraffeInput', required: true }),\n      },\n      resolve: (_root, { input }) => {\n        giraffes.push(input);\n        return input;\n      },\n    }),\n  }),\n});\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "mutation CreateGiraffe {\n  createGiraffe(input: { name: \"Gina\", birthdate: \"2020-03-15\", height: 4.8 }) {\n    name\n    height\n  }\n}\n",
+  "queries": [
+    {
+      "title": "01-Create",
+      "query": "mutation CreateGiraffe {\n  createGiraffe(input: { name: \"Gina\", birthdate: \"2020-03-15\", height: 4.8 }) {\n    name\n    height\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "02-Read",
+      "query": "query ReadStoredGiraffes {\n  giraffes {\n    name\n    height\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

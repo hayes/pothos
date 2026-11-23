@@ -1,0 +1,62 @@
+{
+  "id": "types-scalars",
+  "title": "Positive integers",
+  "description": "Run the literal and variable requests, then the invalid inputs and output. Change value in Variables to 5 to get 10.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/scalars"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport { GraphQLError, Kind } from 'graphql';\n\nconst builder = new SchemaBuilder<{\n  Scalars: {\n    PositiveInt: { Input: number; Output: number };\n  };\n}>({});\n\nfunction positiveInt(value: unknown): number {\n  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) {\n    throw new GraphQLError('PositiveInt must be a positive safe integer');\n  }\n\n  return value;\n}\n\nbuilder.scalarType('PositiveInt', {\n  serialize: positiveInt,\n  parseValue: positiveInt,\n  parseLiteral: (node) => {\n    if (node.kind !== Kind.INT) {\n      throw new GraphQLError('PositiveInt must be an integer literal');\n    }\n\n    return positiveInt(Number(node.value));\n  },\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    double: t.field({\n      type: 'PositiveInt',\n      args: { value: t.arg({ type: 'PositiveInt', required: true }) },\n      resolve: (_parent, { value }) => value * 2,\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Scalars {\n  double(value: 3)\n}\n",
+  "queries": [
+    {
+      "title": "01-query",
+      "query": "query Scalars {\n  double(value: 3)\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "02-invalid-float",
+      "query": "query Scalars {\n  double(value: 1.5)\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "03-invalid-literal",
+      "query": "query Scalars {\n  double(value: \"3\")\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "04-invalid-output",
+      "query": "query Scalars {\n  double(value: 9007199254740991)\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "05-invalid-variable",
+      "query": "query Invalid($value: PositiveInt!) {\n  double(value: $value)\n}\n",
+      "variables": "{ \"value\": -1 }\n",
+      "context": ""
+    },
+    {
+      "title": "06-invalid-zero",
+      "query": "query Scalars {\n  double(value: 0)\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "07-variables",
+      "query": "query Double($value: PositiveInt!) {\n  double(value: $value)\n}\n",
+      "variables": "{ \"value\": 4 }\n",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

@@ -1,0 +1,100 @@
+# Relay nodes
+URL: /docs/plugins/prisma/relay
+Using the Prisma and Relay plugins together
+
+
+
+
+`prismaNode` adds Relay IDs and root node lookups to Prisma objects. Register the
+[Relay plugin](/docs/plugins/relay); see [Connections](./connections) for pagination.
+
+<Callout type="warn" title="Authorize direct node lookups">
+  Defining a node creates a direct lookup through `node` and `nodes`. These lookups bypass custom
+  root resolvers, so permission checks or visibility filters on a list or parent field do not protect
+  node refetches. An encoded global ID is an identifier, not proof of permission.
+
+  With Scope Auth, require scopes on the `node` and `nodes` fields, put scopes on the `Node`
+  interface or each node type, or disable the lookup fields. You can also enforce visibility where the
+  node loads, so inaccessible records look missing. See
+  [Relay node authorization](/docs/plugins/scope-auth/relay-nodes) for each option and its
+  limits.
+</Callout>
+
+### `prismaNode` [#prismanode]
+
+The `prismaNode` method works just like the `prismaObject` method with a couple of small
+differences:
+
+* there is a new `id` option that mirrors the `id` option from `node` method of the relay plugin,
+  and must contain a resolve function that returns the id from an instance of the node. Rather than
+  defining a resolver for the id field, you can set the `field` option to the name of a unique
+  column or index.
+
+```typescript
+builder.prismaNode('Post', {
+  // This sets what database field to use for the nodes id field
+  id: { field: 'id' },
+  // fields work just like they do for builder.prismaObject
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+```
+
+If you need to customize how ids are formatted, you can add a resolver for the `id`, and provide a
+`findUnique` option that can be used to load the node by its id. This is generally not necessary.
+
+```typescript
+builder.prismaNode('Post', {
+  id: { resolve: (post) => String(post.id) },
+  // The return value will be passed as the `where` of a `prisma.post.findUnique`
+  findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+```
+
+When executing the `node(id: ID!)` query with a global ID for which prisma cannot find a record in
+the database, the default behavior is to throw an error. There are some scenarios where it is
+preferable to return `null` instead of throwing an error. For this you can add the `nullable: true`
+option:
+
+```typescript
+builder.prismaNode('Post', {
+  id: { field: 'id' },
+  nullable: true,
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+```
+
+## Refetch a public author [#refetch-a-public-author]
+
+The publishing schema defines User as a Relay node. Its returned ID can be passed back to
+`node` to fetch the author with a new selection:
+
+```graphql
+query RefetchAuthor {
+  node(id: "VXNlcjox") {
+    ... on User {
+      name
+      posts {
+        title
+      }
+    }
+  }
+}
+```
+
+The ID identifies User 1. The node returns the same public fields as the author lookup, including
+only published posts. A node lookup does not route through a custom root resolver, so any
+access restrictions on an entity must also hold when it is loaded as a node.
+
+Post node lookups additionally restrict rows to published posts or the requesting author's own
+drafts. With `nullable: true`, a missing or inaccessible Post returns null. Merely hiding a draft
+from the public connection would not prevent a client from refetching it by a known node ID.

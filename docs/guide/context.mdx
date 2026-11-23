@@ -1,0 +1,141 @@
+# Using Context
+URL: /docs/guide/context
+Guide for using context object in Pothos
+
+
+The GraphQL context object gives resolvers access to shared state for the current request. For
+example, you can use it to make the current user available throughout your schema.
+
+First, let's define the user data and add a `Context` type to the builder:
+
+```typescript playground example="foundations-context"
+import SchemaBuilder from '@pothos/core';
+
+interface User {
+  id: string;
+  firstName: string;
+  username: string;
+}
+
+const builder = new SchemaBuilder<{
+  Context: {
+    currentUser: User | null;
+  };
+}>({});
+```
+
+Next, we can define a GraphQL object for the user and a query that reads it from context:
+
+```typescript playground example="foundations-context"
+const UserRef = builder.objectRef<User>('User').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    firstName: t.exposeString('firstName'),
+    username: t.exposeString('username'),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    currentUser: t.field({
+      type: UserRef,
+      nullable: true,
+      resolve: (_root, _args, context) => context.currentUser,
+    }),
+  }),
+});
+```
+
+The resolver's `context` parameter has the type we provided to the builder. Clients can query the
+current user with:
+
+```graphql playground example="foundations-context"
+query SignedIn {
+  currentUser {
+    id
+    username
+  }
+}
+
+```
+
+The example context values simulate request data; the server setup below performs the actual
+user lookup.
+
+When there is no signed-in user, the response is `{ "data": { "currentUser": null } }`.
+
+Your GraphQL server creates the context for each request. Here is an example using GraphQL Yoga,
+where `getUserFromAuthHeader` is an application function that looks up a user and returns `User | null`:
+
+```typescript
+import { createServer } from 'node:http';
+import { initContextCache } from '@pothos/core';
+import { createYoga } from 'graphql-yoga';
+import { getUserFromAuthHeader } from './auth';
+
+const yoga = createYoga({
+  schema: builder.toSchema(),
+  context: async ({ request }) => ({
+    ...initContextCache(),
+    currentUser: await getUserFromAuthHeader(request.headers.get('authorization')),
+  }),
+});
+
+const server = createServer(yoga);
+server.listen(3000);
+```
+
+## Initialize context cache [#initialize-context-cache]
+
+Create a new context object for each request. Plugins such as dataloader and scope-auth use the
+context object's identity to cache data for that request's resolvers.
+
+`initContextCache()` lets those plugins share their cache when a server copies or extends the
+context. Call it inside the context factory so each request gets a separate cache key. If your server
+passes the same context object to every resolver, plugins can cache by its identity without this
+helper.
+
+## Context when using multiple protocols [#context-when-using-multiple-protocols]
+
+If your HTTP and WebSocket handlers provide different context properties, a
+[discriminated union](https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions)
+lets resolvers check which properties are available:
+
+```typescript playground example="foundations-context-transports"
+type Context =
+  | {
+      transport: 'http';
+      request: Request;
+    }
+  | {
+      transport: 'websocket';
+      connectionParams: { clientName: string };
+    };
+
+const builder = new SchemaBuilder<{
+  Context: Context;
+}>({});
+
+builder.queryType({
+  fields: (t) => ({
+    clientName: t.string({
+      nullable: true,
+      resolve: (_root, _args, context) => {
+        if (context.transport === 'http') {
+          return context.request.headers.get('x-client-name');
+        }
+
+        return context.connectionParams.clientName;
+      },
+    }),
+  }),
+});
+```
+
+The example runs the WebSocket-shaped branch with a JSON context fixture. Its `Context` editor
+can represent `connectionParams`, but an HTTP `Request` must come from your server; editing the
+playground's **Headers** does not create one or start a WebSocket connection.
+
+Checking `transport` narrows the context type, so the resolver can access the properties for that
+transport. Set the discriminator and the corresponding properties when creating the context in each
+handler.

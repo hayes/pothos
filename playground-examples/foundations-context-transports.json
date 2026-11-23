@@ -1,0 +1,26 @@
+{
+  "id": "foundations-context-transports",
+  "title": "Context transport narrowing",
+  "description": "Run the WebSocket-shaped fixture, then change connectionParams.clientName in Context and run again. The HTTP branch expects a real Request supplied by a server, not the playground Headers control.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/context"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\ntype Context =\n  | {\n      transport: 'http';\n      request: Request;\n    }\n  | {\n      transport: 'websocket';\n      connectionParams: { clientName: string };\n    };\n\nconst builder = new SchemaBuilder<{\n  Context: Context;\n}>({});\n\nbuilder.queryType({\n  fields: (t) => ({\n    clientName: t.string({\n      nullable: true,\n      resolve: (_root, _args, context) => {\n        if (context.transport === 'http') {\n          return context.request.headers.get('x-client-name');\n        }\n\n        return context.connectionParams.clientName;\n      },\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query WebsocketContext {\n  clientName\n}\n",
+  "queries": [
+    {
+      "title": "WebSocket context",
+      "query": "query WebsocketContext {\n  clientName\n}\n",
+      "variables": "",
+      "context": "{\n  \"transport\": \"websocket\",\n  \"connectionParams\": {\n    \"clientName\": \"GraphiQL\"\n  }\n}\n"
+    }
+  ],
+  "defaultActiveFile": 0
+}

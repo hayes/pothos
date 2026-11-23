@@ -1,0 +1,141 @@
+# Type variants
+URL: /docs/plugins/prisma/variants
+How to define multiple GraphQL types based on the same prisma model
+
+
+The prisma plugin supports defining multiple GraphQL types based on the same prisma model.
+Additional types are called `variants`. Define a primary type as shown in [Objects](./objects).
+The examples below are alternatives using the User and Post models, with an integer User id,
+a User.posts relation, and a Boolean Post.published column. Node examples require the
+[Relay plugin](./relay). Use the authenticated `userId` context from [Setup](./setup).
+
+Define an additional variant by providing `variant` instead of `name`:
+
+```typescript
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+```
+
+You can define variant fields that reference one variant from another:
+
+```typescript
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    // Using the model name ('User') will reference the primary variant
+    user: t.variant('User'),
+  }),
+});
+
+const User = builder.prismaNode('User', {
+  id: { field: 'id' },
+  fields: (t) => ({
+    // To reference another variant, use the returned object Ref instead of the model name:
+    viewer: t.variant(Viewer, {
+      // return null for viewer if the parent User is not the current user
+      isNull: (user, args, ctx) => user.id !== ctx.userId,
+    }),
+    email: t.exposeString('email'),
+  }),
+});
+```
+
+You can also use variants when defining relations by providing a `type` option:
+
+```typescript
+const PostDraft = builder.prismaNode('Post', {
+  variant: 'PostDraft',
+  // This sets what database field to use for the nodes id field
+  id: { field: 'id' },
+  // fields work just like they do for builder.prismaObject
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    drafts: t.relation('posts', {
+      // This will cause this relation to use the PostDraft variant rather than the default Post variant
+      type: PostDraft,
+      query: { where: { published: false } },
+    }),
+  }),
+});
+```
+
+You may run into circular reference issues if you use 2 prisma object refs to reference each other.
+To avoid this, you can split out the field definition for one of the relationships using
+`builder.prismaObjectField`
+
+```typescript
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+
+const User = builder.prismaNode('User', {
+  id: { field: 'id' },
+  fields: (t) => ({
+    email: t.exposeString('email'),
+  }),
+});
+
+// Add the reference after both types have been defined.
+builder.prismaObjectField(Viewer, 'user', (t) => t.variant(User));
+```
+
+This same workaround applies when defining relations using variants.
+
+Two variants of one model selected for the same row have their type-level selections merged into a
+single query, which can fail if they disagree. See
+[Conflicting selections between variants](./query-planning#conflicting-selections-between-variants).
+
+## The author’s writing desk [#the-authors-writing-desk]
+
+A public User and a private Viewer can represent the same row. The Viewer exposes the current
+author's email and drafts, and its `user` field returns the public representation. The root `me`
+resolver uses the authenticated context ID; it does not accept an arbitrary author's ID.
+
+This version makes Viewer an interface so editor and author accounts can expose different fields:
+
+```typescript
+const Viewer = builder.prismaInterface('User', {
+  variant: 'Viewer',
+  select: { id: true, isAdmin: true },
+  resolveType: (user) => (user.isAdmin ? 'EditorViewer' : 'AuthorViewer'),
+  fields: (t) => ({
+    user: t.variant('User'),
+    email: t.exposeString('email'),
+    drafts: t.relation('posts', {
+      query: { where: { published: false }, orderBy: { id: 'asc' } },
+    }),
+  }),
+});
+builder.prismaObject('User', {
+  variant: 'EditorViewer',
+  interfaces: [Viewer],
+  select: { id: true, isAdmin: true },
+  fields: (t) => ({ canReviewSubmissions: t.boolean({ resolve: () => true }) }),
+});
+builder.prismaObject('User', {
+  variant: 'AuthorViewer',
+  interfaces: [Viewer],
+  select: { id: true, isAdmin: true },
+});
+```
+
+With Maya's context (`userId: 1`), `me` is an EditorViewer with the draft “Planning the spring
+exchange.” With Leo's context (`userId: 2`), it is an AuthorViewer with “Saving rainwater.”
+The interface describes the result shape; the root lookup supplies the ownership restriction.
+Neither public author fields nor public post connections return those drafts.

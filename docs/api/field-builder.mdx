@@ -1,0 +1,115 @@
+# FieldBuilder
+URL: /docs/api/field-builder
+API docs for Pothos FieldBuilder
+
+
+The field builder is the `t` passed to a `fields` callback. See [Fields](../guide/fields)
+for examples. The option types below summarize an API whose concrete types are inferred from your schema.
+
+## `field(options)` [#fieldoptions]
+
+* `options`: `FieldOptions`
+
+### FieldOptions [#fieldoptions-1]
+
+```typescript
+type FieldOptions = {
+  type: ReturnType;
+  args?: Args;
+  nullable?: boolean | { list: boolean; items: boolean };
+  description?: string;
+  deprecationReason?: string;
+  resolve: (parent, args, context, info) => ResolveValue;
+  extensions?: Readonly<Record<string, unknown>>;
+  astNode?: FieldDefinitionNode;
+};
+```
+
+* `type`: [Type Parameter](./field-builder#type-parameter)
+* `args`: a map of argument names to refs, created with [`t.arg`](./arg-builder) or `builder.args`.
+* `nullable`: defaults to `true`, unless overwritten in SchemaBuilder see
+  [Changing Default Nullability](../guide/changing-default-nullability).
+* `astNode`: an optional `FieldDefinitionNode` from `graphql` attached to this schema element.
+  See [AST metadata](./schema-builder#ast-metadata).
+* `description`: string
+* `deprecationReason`: string
+* `resolve`: [Resolver](./field-builder#resolver)
+
+### Type Parameter [#type-parameter]
+
+A Type Parameter for a Field can be any `TypeRef` returned by one of the
+[`SchemaBuilder`](./schema-builder) methods for defining a type, a class used to create an object or
+interface type, a ts enum used to define a graphql enum type, or a string that corresponds to one of
+the keys of the `Objects`, `Interfaces`, or `Scalars` objects defined in `SchemaTypes`.
+
+For list fields, wrap the type in an array, for example `['User']`. A boolean `nullable`
+controls the list itself; items are non-null by default. Use `{ list: true, items: true }` to allow
+both a null list and null items.
+
+### Resolver [#resolver]
+
+A function to resolve the value of this field.
+
+#### Return type [#return-type]
+
+Field resolvers should return a value (or promise) that matches the expected type for this field.
+For scalars, this is their output shape. For objects and interfaces, it is the backing shape
+carried by a ref, class, or `SchemaTypes` entry. For Unions, the type may be any of the corresponding shapes of members of the union.
+For Enums, the value is dependent on the implementation of the enum. See the [Enums](../guide/enums) guide for more
+details.
+
+#### Args [#args]
+
+* `parent`: the backing value of the current type. Root fields receive the root value, typed by `SchemaTypes.Root`.
+
+* `args`: an object matching the shape of the args option for the current field
+
+* `context`: The `Context` type defined in `SchemaTypes`.
+
+* `info`: a GraphQLResolveInfo object see
+
+  [https://graphql.org/graphql-js/type/#graphqlobjecttype](https://graphql.org/graphql-js/type/#graphqlobjecttype)
+
+  for more details.
+
+## helpers [#helpers]
+
+A set of helpers for creating scalar fields. These work the same as
+[`field`](./field-builder#fieldoptions), but omit the `type` field from options.
+
+### Scalars [#scalars]
+
+* `string(options)`
+* `id(options)`
+* `boolean(options)`
+* `int(options)`
+* `float(options)`
+* `stringList(options)`
+* `idList(options)`
+* `booleanList(options)`
+* `intList(options)`
+* `floatList(options)`
+
+### `listRef(type, options?)` [#listreftype-options]
+
+Creates a list type reference, including nested lists. `options.nullable` controls the items
+and defaults to `false`; the field options control the outer list.
+
+### expose [#expose]
+
+A set of helpers to expose fields from the backing model. The `name` arg can be any field from the
+backing model that matches the type being exposed. Options are the same as
+[`field`](./field-builder#fieldoptions), but `type`, `resolve`, and `args` are omitted.
+
+The general `expose(name, { type, ...options })` helper also supports object, enum, and custom scalar properties.
+
+* `exposeString(name, options)`
+* `exposeID(name, options)`
+* `exposeBoolean(name, options)`
+* `exposeInt(name, options)`
+* `exposeFloat(name, options)`
+* `exposeStringList(name, options)`
+* `exposeIDList(name, options)`
+* `exposeBooleanList(name, options)`
+* `exposeIntList(name, options)`
+* `exposeFloatList(name, options)`

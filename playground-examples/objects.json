@@ -1,0 +1,45 @@
+{
+  "id": "objects",
+  "title": "Object types",
+  "description": "Run the query to get a giraffe’s name, height, and birth year. Change the birthday in the resolver, then run again to see how birthYear is calculated from it.",
+  "category": "core",
+  "order": 10,
+  "relatedDocs": [
+    "/docs/guide/objects"
+  ],
+  "variants": [
+    {
+      "id": "refs",
+      "title": "Object refs",
+      "default": true
+    },
+    {
+      "id": "classes",
+      "title": "Classes"
+    },
+    {
+      "id": "builder-types",
+      "title": "SchemaTypes"
+    },
+    {
+      "id": "inline-refs",
+      "title": "Inline refs"
+    }
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\ninterface Giraffe {\n  name: string;\n  birthday: Date;\n  heightInMeters: number;\n}\n\nconst builder = new SchemaBuilder({});\nconst GiraffeRef = builder.objectRef<Giraffe>('Giraffe');\n\nGiraffeRef.implement({\n  description: 'A giraffe in the zoo.',\n  fields: (t) => ({\n    name: t.exposeString('name'),\n    height: t.exposeFloat('heightInMeters'),\n    birthYear: t.int({\n      resolve: (giraffe) => giraffe.birthday.getUTCFullYear(),\n    }),\n  }),\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    giraffe: t.field({\n      type: GiraffeRef,\n      resolve: () => ({\n        name: 'James',\n        birthday: new Date(Date.UTC(2012, 11, 12)),\n        heightInMeters: 5.2,\n      }),\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Giraffe {\n  giraffe {\n    name\n    birthYear\n    height\n  }\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query Giraffe {\n  giraffe {\n    name\n    birthYear\n    height\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ]
+}

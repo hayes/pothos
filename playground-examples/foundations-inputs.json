@@ -1,0 +1,38 @@
+{
+  "id": "foundations-inputs",
+  "title": "Input objects and recursive inputs",
+  "description": "Run Create, then Friends. Read shows the stored giraffes. Change a nested friend’s height in Friends and run again. Reset example empties the store.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/inputs"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\ntype Giraffe = {\n  name: string;\n  birthdate: string;\n  height: number;\n};\n\nconst builder = new SchemaBuilder({});\nconst giraffes: Giraffe[] = [];\n\nconst GiraffeRef = builder.objectRef<Giraffe>('Giraffe').implement({\n  fields: (t) => ({\n    name: t.exposeString('name'),\n    birthdate: t.exposeString('birthdate'),\n    height: t.exposeFloat('height'),\n  }),\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    giraffes: t.field({ type: [GiraffeRef], resolve: () => giraffes }),\n  }),\n});\n\nconst GiraffeInput = builder.inputType('GiraffeInput', {\n  fields: (t) => ({\n    name: t.string({ required: true }),\n    birthdate: t.string({ required: true }),\n    height: t.float({ required: true }),\n  }),\n});\n\nbuilder.mutationType({\n  fields: (t) => ({\n    createGiraffe: t.field({\n      type: GiraffeRef,\n      args: {\n        input: t.arg({ type: GiraffeInput, required: true }),\n      },\n      resolve: (_root, { input }) => {\n        giraffes.push(input);\n        return input;\n      },\n    }),\n  }),\n});\n\ninterface RecursiveGiraffeInputShape {\n  name: string;\n  birthdate: string;\n  height: number;\n  friends?: RecursiveGiraffeInputShape[] | null;\n}\n\nconst RecursiveGiraffeInput = builder.inputRef<RecursiveGiraffeInputShape>('RecursiveGiraffeInput');\n\nRecursiveGiraffeInput.implement({\n  fields: (t) => ({\n    name: t.string({ required: true }),\n    birthdate: t.string({ required: true }),\n    height: t.float({ required: true }),\n    friends: t.field({\n      type: [RecursiveGiraffeInput],\n      required: { list: false, items: true },\n    }),\n  }),\n});\n\nfunction createGiraffes(input: RecursiveGiraffeInputShape): Giraffe[] {\n  const giraffe: Giraffe = {\n    name: input.name,\n    birthdate: input.birthdate,\n    height: input.height,\n  };\n\n  return [giraffe, ...(input.friends ?? []).flatMap(createGiraffes)];\n}\n\nbuilder.mutationField('createGiraffeWithFriends', (t) =>\n  t.field({\n    type: [GiraffeRef],\n    args: {\n      input: t.arg({ type: RecursiveGiraffeInput, required: true }),\n    },\n    resolve: (_root, { input }) => {\n      const created = createGiraffes(input);\n      giraffes.push(...created);\n      return created;\n    },\n  }),\n);\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "mutation CreateGiraffe {\n  createGiraffe(input: { name: \"Gina\", birthdate: \"2020-03-15\", height: 4.8 }) {\n    name\n    height\n  }\n}\n",
+  "queries": [
+    {
+      "title": "01-Create",
+      "query": "mutation CreateGiraffe {\n  createGiraffe(input: { name: \"Gina\", birthdate: \"2020-03-15\", height: 4.8 }) {\n    name\n    height\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "02-Friends",
+      "query": "mutation CreateFriends {\n  createGiraffeWithFriends(\n    input: {\n      name: \"Gina\"\n      birthdate: \"2020-03-15\"\n      height: 4.8\n      friends: [\n        {\n          name: \"George\"\n          birthdate: \"2021-06-01\"\n          height: 4.5\n          friends: [{ name: \"Gemma\", birthdate: \"2022-08-10\", height: 3.9 }]\n        }\n      ]\n    }\n  ) {\n    name\n    height\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "03-Read",
+      "query": "query ReadStoredGiraffes {\n  giraffes {\n    name\n    height\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

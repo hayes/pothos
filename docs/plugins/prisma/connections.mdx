@@ -1,0 +1,509 @@
+# Connections
+URL: /docs/plugins/prisma/connections
+Creating relay connections with the Prisma plugin
+
+
+These examples use the [Prisma builder setup](./setup) with the [Relay plugin](./relay).
+Register the Prisma object types used by each field. Later examples replace earlier definitions of
+the same field or helper.
+
+### `prismaConnection` [#prismaconnection]
+
+The `prismaConnection` method on a field builder can be used to create a relay `connection` field
+that also pre-loads all the data nested inside that connection.
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    posts: t.prismaConnection(
+      {
+        type: 'Post',
+        cursor: 'id',
+        resolve: (query, parent, args, context, info) => {
+          return prisma.post.findMany({
+            ...query,
+          });
+        },
+      },
+      {}, // optional options for the Connection type
+      {}, // optional options for the Edge type),
+    ),
+  }),
+});
+```
+
+#### options [#options]
+
+* `type`: the name of the prisma model being connected to
+* `cursor`: a `@unique` column of the model being connected to. This is used as the `cursor` option
+  passed to prisma. If the column is nullable, paging from a row where it is null fails.
+* `defaultSize`: (default: 20) The default page size to use if `first` and `last` are not provided.
+* `maxSize`: (default: 100) The maximum number of nodes returned for a connection.
+* `resolve`: Like the resolver for `prismaField`, the first argument is a `query` object that should
+  be spread into your prisma query. The `resolve` function should return an array of nodes for the
+  connection. The `query` will contain the correct `take`, `skip`, and `cursor` options based on the
+  connection arguments (`before`, `after`, `first`, `last`), along with `include` options for nested
+  selections. The `orderBy` you pass to prisma should end in a unique column, or pages read
+  backward with `last` may not match the pages read forward.
+* `totalCount`: A function for loading the total count for the connection. This will add a
+  `totalCount` field to the connection object. The `totalCount` method will receive (`connection`,
+  `args`, `context`, `info`) as arguments. Note that this will not work when using a shared
+  connection object (see details below)
+
+The created connection queries currently support the following combinations of connection arguments:
+
+* `first`, `last`, `before`, or `after` on their own
+* `first` and `after`
+* `last` and `before`
+
+The following combinations are not supported:
+
+* `before` and `after`
+* `first` and `before`
+* `last` and `after`
+
+Queries for these combinations are not as useful, and generally requiring loading all records
+between 2 cursors, or between a cursor and the end of the set. Generating query options for these
+cases is more complex and likely very inefficient, so they will currently throw an Error indicating
+the argument combinations are not supported.
+
+Paging from the cursor of a row that has since been deleted returns an empty page rather than an
+error.
+
+The `maxSize` and `defaultSize` can also be configured globally using `maxConnectionSize` and
+`defaultConnectionSize` options in the `prisma` plugin options.
+
+### `relatedConnection` [#relatedconnection]
+
+The `relatedConnection` method can be used to create a relay `connection` field based on a relation
+of the current model.
+
+```typescript
+builder.prismaNode('User', {
+  id: { field: 'id' },
+  fields: (t) => ({
+    // Connections can be very simple to define
+    simplePosts: t.relatedConnection('posts', {
+      cursor: 'id',
+    }),
+    // Or they can include custom arguments, and other options
+    posts: t.relatedConnection(
+      'posts',
+      {
+        cursor: 'id',
+        args: {
+          oldestFirst: t.arg.boolean(),
+        },
+        query: (args, context) => ({
+          orderBy: {
+            createdAt: args.oldestFirst ? 'asc' : 'desc',
+          },
+        }),
+      },
+      {}, // optional options for the Connection type
+      {}, // optional options for the Edge type),
+    ),
+  }),
+});
+```
+
+#### options [#options-1]
+
+* `cursor`: a `@unique` column of the model being connected to. This is used as the `cursor` option
+  passed to prisma.
+* `defaultSize`: (default: 20) The default page size to use if `first` and `last` are not provided.
+* `maxSize`: (default: 100) The maximum number of nodes returned for a connection.
+* `query`: A method that accepts the `args` and `context` for the connection field, and returns
+  filtering and sorting logic that will be merged into the query for the relation. If the
+  `orderBy` is not unique, the plugin also sorts by the cursor's fields last, in the direction of
+  the last `orderBy` entry, so tied rows keep the same order on every page. End `orderBy` with a
+  unique column to choose that order yourself.
+* `totalCount`: when set to true, this will add a `totalCount` field to the connection object. see
+  [`relationCount`](./relations#relationcount) for more details. Note that this will not work when
+  using a shared connection object (see details below)
+
+### Indirect relations as connections [#indirect-relations-as-connections]
+
+`prismaConnectionHelpers` connects join rows to a different GraphQL node type. The example uses
+Post.media → PostMedia.media → Media: pagination follows attachment IDs, while each node is an
+image. A caption belongs to the attachment, so the same image can have different captions on two
+posts. Import the helper from `@pothos/plugin-prisma` and register Post and Media first.
+
+```typescript
+const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
+  cursor: 'id',
+  query: { orderBy: { id: 'asc' } },
+  select: (nodeSelection) => ({
+    caption: true,
+    media: nodeSelection({ select: { id: true } }),
+  }),
+  resolveNode: (attachment) => attachment.media,
+});
+```
+
+`select` adds the join data used by the edge and plans the Media fields requested beneath `node`.
+`resolveNode` maps each attachment to its selected image. The helper also accepts `defaultSize`
+and `maxSize` (defaults 20 and 100). Selecting the node ID also keeps the Prisma selection nonempty
+when the operation requests only an edge caption or connection count. Other default node fields
+can be added through the same `nodeSelection` argument.
+
+Use `t.connection` to expose the result. It does not load the relation automatically: its field
+selection includes `getQuery`, and its resolver passes the loaded attachments to the helper:
+
+```typescript
+builder.prismaObjectField('Post', 'mediaConnection', (t) =>
+  t.connection(
+    {
+      type: Media,
+      select: (args, ctx, nestedSelection) => ({
+        _count: { select: { media: true } },
+        media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
+      }),
+      resolve: (post, args, ctx) => {
+        return {
+          ...mediaConnectionHelpers.resolve(post.media, args, ctx),
+          totalCount: post._count.media,
+        };
+      },
+    },
+    {
+      fields: (connection) => ({
+        totalCount: connection.int({ resolve: (result) => result.totalCount }),
+      }),
+    },
+    {
+      fields: (edge) => ({
+        caption: edge.string({ resolve: (attachment) => attachment.caption }),
+      }),
+    },
+  ),
+);
+```
+
+The parent selection counts attachments separately from the page. The second configuration
+argument adds `totalCount` to the connection; the third adds fields to its edges. A page containing
+one attachment can therefore report two total attachments.
+
+```graphql
+query Attachments {
+  author(id: 1) {
+    posts(oldestFirst: true) {
+      title
+      mediaConnection(first: 1) {
+        totalCount
+        edges {
+          caption
+          node {
+            url
+            uploadedBy {
+              name
+            }
+          }
+        }
+        pageInfo {
+          endCursor
+          hasNextPage
+        }
+      }
+    }
+  }
+}
+```
+
+Both posts return the same first image, but with different captions. “Starting a seed library”
+has two attachments and a next page; the cursor advances through PostMedia rows, not Media IDs.
+The second page contains the seed-packets image. An attachment-free post has an empty edge list
+and a zero count. The [local example](./setup#run-the-publishing-api) includes this operation.
+
+`prismaConnectionHelpers` can also be used to manually create a connection where the edge and
+connections share the same model, and pagination happens directly on a relation to nodes type (even
+if that relation is nested).
+
+```ts
+const commentConnectionHelpers = prismaConnectionHelpers(builder, 'Comment', {
+  cursor: 'id',
+});
+
+const SelectPost = builder.prismaObject('Post', {
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    comments: t.connection({
+      type: commentConnectionHelpers.ref,
+      select: (args, ctx, nestedSelection) => ({
+        comments: commentConnectionHelpers.getQuery(args, ctx, nestedSelection),
+      }),
+      resolve: (parent, args, ctx) => {
+        return commentConnectionHelpers.resolve(parent.comments, args, ctx);
+      },
+    }),
+  }),
+});
+```
+
+To add arguments for a connection defined with a helper, it is often easiest to define the arguments
+on the connection field rather than the connection helper. This allows connection helpers to be
+shared between fields that may not share the same arguments:
+
+```ts
+const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
+  cursor: 'id',
+  select: (nodeSelection) => ({
+    media: nodeSelection({}),
+  }),
+  resolveNode: (postMedia) => postMedia.media,
+});
+
+builder.prismaObjectField('Post', 'mediaConnection', (t) =>
+  t.connection({
+    type: Media,
+    args: {
+      inverted: t.arg.boolean(),
+    },
+    select: (args, ctx, nestedSelection) => ({
+      media: {
+        ...mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
+        orderBy: {
+          post: {
+            createdAt: args.inverted ? 'desc' : 'asc',
+          },
+        },
+      },
+    }),
+    resolve: (post, args, ctx) => {
+      return mediaConnectionHelpers.resolve(post.media, args, ctx);
+    },
+  }),
+);
+```
+
+Arguments, ordering and filtering can also be defined on the helpers themselves:
+
+```ts
+const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
+  cursor: 'id',
+  // define arguments for the connection helper, these will be available as the second argument of `select`
+  args: (t) => ({
+    inverted: t.boolean(),
+  }),
+  select: (nodeSelection, args) => ({
+    media: nodeSelection({}),
+  }),
+  query: (args) => ({
+    // Custom filtering with a where clause
+    where: {
+      post: {
+        published: true,
+      },
+    },
+    // custom ordering including use of args
+    orderBy: {
+      post: {
+        createdAt: args.inverted ? ('desc' as const) : ('asc' as const),
+      },
+    },
+  }),
+  resolveNode: (postMedia) => postMedia.media,
+});
+
+builder.prismaObjectField('Post', 'mediaConnection', (t) =>
+  t.connection({
+    type: Media,
+    // add the args from the connection helper to the field
+    args: mediaConnectionHelpers.getArgs(),
+    select: (args, ctx, nestedSelection) => ({
+      media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
+    }),
+    resolve: (post, args, ctx) => {
+      return mediaConnectionHelpers.resolve(post.media, args, ctx);
+    },
+  }),
+);
+```
+
+If the `orderBy` in the helper's `query` is not unique, the plugin also sorts by the cursor's
+fields last, like `relatedConnection`, and `getQuery` returns `orderBy` as an array. If you set
+`orderBy` after spreading `getQuery`, as in the earlier example, the plugin does not change it. It
+should end in a unique column.
+
+### Sharing Connections objects [#sharing-connections-objects]
+
+You can create reusable connection objects by using `builder.connectionObject`.
+
+These connection objects can be used with `t.prismaConnection`, `t.relatedConnection`, or
+`t.connection`
+
+Shared edges can also be created using `builder.edgeObject`
+
+```typescript
+const CommentConnection = builder.connectionObject({
+  type: commentConnectionHelpers.ref,
+  name: 'CommentConnection',
+});
+
+builder.prismaObject('Post', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    commentsConnection: t.relatedConnection(
+      'comments',
+      { cursor: 'id' },
+      // The connection object ref can be passed in place of the connection object options
+      CommentConnection
+    ),
+  }),
+});
+```
+
+### Extending connection edges [#extending-connection-edges]
+
+Edge fields can read data from the row paginated by the helper. In the attachment connection,
+`select` loads `caption` from PostMedia and the third `t.connection` argument exposes it:
+
+```typescript
+fields: (edge) => ({
+  caption: edge.string({ resolve: (attachment) => attachment.caption }),
+}),
+```
+
+The edge parent is inferred from the helper's resolved rows. Its caption describes the attachment;
+`node.url` describes the shared Media record.
+
+For a timestamp on the join model instead, select `createdAt: true` in the helper and add this
+edge field. This alternative requires a `PostMedia.createdAt` column and a registered `DateTime`
+scalar whose output is `Date`:
+
+```ts
+createdAt: edge.field({
+  type: 'DateTime',
+  resolve: (attachment) => attachment.createdAt,
+}),
+```
+
+### Total count on shared connection objects [#total-count-on-shared-connection-objects]
+
+If you set the `totalCount: true` on a `prismaConnection` or `relatedConnection` field, and are
+using a custom connection object, you will need to add the `totalCount` field to the
+connection object manually. The parent object on the connection will have a `totalCount` property
+that is either the totalCount, or a function that will return the totalCount.
+
+```typescript
+const CommentConnection = builder.connectionObject({
+  type: commentConnectionHelpers.ref,
+  name: 'CommentConnection',
+  fields: (t) => ({
+    totalCount: t.int({
+      resolve: (connection) => {
+        const { totalCount } = connection as {
+          totalCount?: number | (() => number | Promise<number>);
+        };
+
+        return typeof totalCount === 'function' ? totalCount() : totalCount;
+      },
+    }),
+  }),
+});
+```
+
+If you want to add a global `totalCount` field, you can do something similar using
+`builder.globalConnectionField`:
+
+```typescript
+export const builder = new SchemaBuilder<{
+  PrismaTypes: PrismaTypes;
+  Connection: {
+    totalCount: number | (() => number | Promise<number>);
+  };
+}>({
+  plugins: [PrismaPlugin, RelayPlugin],
+  prisma: {
+    client: prisma,
+    dmmf: getDatamodel(),
+  },
+});
+
+builder.globalConnectionField('totalCount', (t) =>
+  t.int({
+    nullable: false,
+    resolve: (parent) => {
+      return typeof parent.totalCount === 'function' ? parent.totalCount() : parent.totalCount;
+    },
+  }),
+);
+```
+
+### `parsePrismaCursor` and `formatPrismaCursor` [#parseprismacursor-and-formatprismacursor]
+
+These functions can be used to manually parse and format cursors that are compatible with prisma
+connections.
+
+Parsing a cursor will return the value from the column used for the cursor (often the `id`), this
+value may be an array or object when a compound index is used as the cursor. Similarly, to format a
+cursor, you must provide the column(s) that make up the cursor.
+
+## Page through published posts [#page-through-published-posts]
+
+These queries use `nodes` on connections. Enable `relay: { nodesOnConnection: true }` in the
+builder options, or select `edges { node { title } }` with the default Relay configuration.
+
+A public post connection applies the same `published` filter as author pages. The publishing
+schema uses this root connection alongside its private viewer:
+
+```typescript
+builder.queryFields((t) => ({
+  me: t.prismaField({
+    type: Viewer,
+    resolve: (query, _root, _args, ctx) => {
+      return prisma.user.findUniqueOrThrow({
+        ...query,
+        where: { id: ctx.userId },
+      });
+    },
+  }),
+  posts: t.prismaConnection({
+    type: 'Post',
+    cursor: 'id',
+    resolve: (query) => {
+      return prisma.post.findMany({
+        ...query,
+        where: { published: true },
+        orderBy: { id: 'asc' },
+      });
+    },
+    totalCount: () => {
+      return prisma.post.count({
+        where: { published: true },
+      });
+    },
+  }),
+  searchPosts: t.prismaField({
+    type: ['Post'],
+    args: { where: t.arg({ type: PostWhere }), orderBy: t.arg({ type: PostOrderBy }) },
+    resolve: (query, _root, args) => {
+      return prisma.post.findMany({
+        ...query,
+        // Caller filters can narrow this scope, but cannot expose drafts.
+        where: { AND: [{ published: true }, args.where ?? {}] },
+        orderBy: args.orderBy ? [args.orderBy, { id: 'asc' }] : { id: 'asc' },
+      });
+    },
+  }),
+}));
+```
+
+```graphql
+query PublishedPosts {
+  posts(first: 2) {
+    nodes {
+      title
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+  }
+}
+```
+
+There are three published posts and two drafts in the seed data. The first page contains two
+published posts and has a next page. Passing its `endCursor` as `after` returns the remaining
+published post. The related author connection uses the same filter for its nodes and `totalCount`,
+so Maya's count is two, including when the client requests only the count.

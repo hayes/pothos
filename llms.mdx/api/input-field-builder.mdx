@@ -1,0 +1,78 @@
+# InputFieldBuilder
+URL: /docs/api/input-field-builder
+API docs for Pothos InputFieldBuilder
+
+
+This reference describes the options for an input field. For examples, see [Input Objects](../guide/inputs).
+
+The option types below are summaries; Pothos infers their concrete types from your schema.
+
+## `field(options)` [#fieldoptions]
+
+* `options`: \[`FieldOptions`]
+
+### FieldOptions [#fieldoptions-1]
+
+```typescript
+type FieldOptions = {
+  type: InputType;
+  required?: boolean | { list: boolean; items: boolean };
+  defaultValue?: DefaultValue;
+  description?: string;
+  deprecationReason?: string;
+  extensions?: Readonly<Record<string, unknown>>;
+  astNode?: InputValueDefinitionNode;
+};
+```
+
+* `type`: [Type Parameter](./input-field-builder#type-parameter)
+
+* `required`: defaults to `false`, unless overwritten in SchemaBuilder. See
+  [Changing Default Nullability](../guide/changing-default-nullability).
+
+* `astNode`: an optional `InputValueDefinitionNode` from `graphql` attached to this schema element.
+  See [AST metadata](./schema-builder#ast-metadata).
+
+* `description`: string
+
+* `deprecationReason`: marks the input as deprecated.
+
+* `extensions`: metadata for tools and plugins.
+
+* `defaultValue`: default value for field, type based on `type` option.
+
+### Type Parameter [#type-parameter]
+
+A Type Parameter for a Field can be any `InputTypeRef` returned by one of the
+[`SchemaBuilder`](./schema-builder) methods for defining an `InputObject`, `Enum`, or `Scalar`, a ts
+enum used to define a graphql enum type, or a string that corresponds to one of the keys of the
+`Scalars` object defined in [`SchemaTypes`](./schema-builder#schematypes).
+
+For lists, wrap the type in an array, for example `['ID']`. A boolean `required` controls
+the list itself; items are required by default. Use `{ list: false, items: false }` to allow both
+an omitted or null list and null items. Input object names declared in `SchemaTypes.Inputs`
+can also be used as strings.
+
+## helpers [#helpers]
+
+A set of helpers for creating scalar fields. These work the same as `field`, but omit the `type`
+field from options.
+
+### Scalars [#scalars]
+
+* `string(options)`
+* `id(options)`
+* `boolean(options)`
+* `int(options)`
+* `float(options)`
+* `stringList(options)`
+* `idList(options)`
+* `booleanList(options)`
+* `intList(options)`
+* `floatList(options)`
+
+### `listRef(type, options?)` [#listreftype-options]
+
+Creates a list type reference, including nested lists. `options.required` controls the items
+and defaults to `true`; the field or argument options control the outer list. See
+[Arguments](../guide/args) for a nested-list example.

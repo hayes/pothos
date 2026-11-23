@@ -1,0 +1,51 @@
+{
+  "id": "architecture-circular",
+  "title": "Circular references",
+  "description": "Run the query to follow user.posts.author back to the same user. Change the post title in schema.ts and run again.",
+  "category": "patterns",
+  "relatedDocs": [
+    "/docs/guide/circular-references"
+  ],
+  "variants": [
+    {
+      "id": "implement",
+      "title": "Ref implement",
+      "default": true
+    },
+    {
+      "id": "object-type",
+      "title": "Separate fields"
+    }
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "// schema.ts\nimport { builder } from './builder';\nimport { User, type UserShape } from './user';\nimport './post';\n\nconst user: UserShape = { name: 'Alex', posts: [] };\nuser.posts.push({ title: 'First post', author: user });\n\nbuilder.queryType({\n  fields: (t) => ({\n    user: t.field({ type: User, resolve: () => user }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "builder.ts",
+      "content": "// builder.ts\nimport SchemaBuilder from '@pothos/core';\n\nexport const builder = new SchemaBuilder({});\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "post.ts",
+      "content": "// post.ts\nimport { builder } from './builder';\nimport { User, type UserShape } from './user';\n\nexport interface PostShape {\n  title: string;\n  author: UserShape;\n}\n\nexport const Post = builder.objectRef<PostShape>('Post');\n\nPost.implement({\n  fields: (t) => ({\n    title: t.exposeString('title'),\n    author: t.expose('author', { type: User }),\n  }),\n});\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "user.ts",
+      "content": "// user.ts\nimport { builder } from './builder';\nimport { Post, type PostShape } from './post';\n\nexport interface UserShape {\n  name: string;\n  posts: PostShape[];\n}\n\nexport const User = builder.objectRef<UserShape>('User');\n\nUser.implement({\n  fields: (t) => ({\n    name: t.exposeString('name'),\n    posts: t.expose('posts', { type: [Post] }),\n  }),\n});\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "{\n  user {\n    name\n    posts {\n      title\n      author {\n        name\n      }\n    }\n  }\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "{\n  user {\n    name\n    posts {\n      title\n      author {\n        name\n      }\n    }\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ]
+}

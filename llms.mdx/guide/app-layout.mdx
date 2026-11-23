@@ -1,0 +1,110 @@
+# File layout
+URL: /docs/guide/app-layout
+Guide for Pothos app layouts
+
+
+Pothos tries not to be opinionated about how you structure your code, and provides multiple ways of
+doing many things. This short guide covers a few conventions I use, as a starting place for anyone
+who is just looking for a decent setup that should just work. Everything suggested here is just a
+recommendation and is completely optional.
+
+## Files [#files]
+
+Here are a few files I create in almost every Pothos schema I have built:
+
+* `src/server.ts`: Setup and run your server (This might be graphql-yoga or @apollo/server)
+
+* `src/builder.ts`: Setup for your schema builder. Does not contain any definitions for types in
+  your schema
+
+* `src/schema.ts` or `src/schema/index.ts`: Imports the schema modules, initializes root types such
+  as `Query`, and exports `builder.toSchema()`
+
+* `src/types.ts`: Define shared types used across your schema including a type for your context
+  object. This should be imported when creating your builder, and may be used by many other files.
+
+* `src/schema/*.ts`: Actual definitions for your schema types.
+
+## Imports [#imports]
+
+Import types directly from the files that define them rather than importing from another file like
+`index.ts` that re-exports them. `index.ts` files can still be useful for loading all files in a
+directory, but they should generally NOT export any values.
+
+## Plugins [#plugins]
+
+Which plugins you use is completely up to you. For my own projects, I will use the `simple-objects`,
+`scope-auth`, and `mocks` plugins in every project, and some of the other plugins as needed.
+
+`mocks` and `scope-auth` are fairly self explanatory. The `simple-objects` plugin can make building
+out a graph much quicker, because you don't have to have explicit types or models for every object
+in your graph. I frequently find that I just want to add an object of a specific shape, and then let
+the parent field figure out how to return an object of the right shape.
+
+## Backing models [#backing-models]
+
+You can use your application's TypeScript types as backing models with `objectRef`. For example,
+keep the user data type in `src/types.ts` and define its GraphQL fields in `src/schema/user.ts`:
+
+```typescript playground example="architecture-layout"
+// src/types.ts
+export interface User {
+  id: string;
+  name: string;
+}
+
+```
+
+```typescript playground example="architecture-layout"
+// src/builder.ts
+import SchemaBuilder from '@pothos/core';
+
+export const builder = new SchemaBuilder({});
+
+```
+
+```typescript playground example="architecture-layout"
+// src/schema/user.ts
+import { builder } from '../builder';
+import type { User as UserModel } from '../types';
+
+export const User = builder.objectRef<UserModel>('User').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+  }),
+});
+
+builder.queryField('user', (t) =>
+  t.field({
+    type: User,
+    resolve: () => ({ id: '1', name: 'Alex' }),
+  }),
+);
+
+```
+
+Create the query root and import the schema modules before building the schema:
+
+```typescript playground example="architecture-layout"
+// src/schema.ts
+import { builder } from './builder';
+import './schema/user';
+
+builder.queryType({});
+
+export const schema = builder.toSchema();
+
+```
+
+Other schema modules can import `User` directly from `schema/user.ts` when they need to reference
+the GraphQL type. If your types reference each other, you may need to separate ref creation from
+`implement`, as described in [Circular References](./circular-references).
+
+Classes and types registered on `SchemaTypes` are also supported. See the
+[Objects guide](./objects#different-ways-to-define-object-types) for examples of each style.
+
+## Co-locating queries [#co-locating-queries]
+
+The `user` query above lives alongside the `User` type. Other schema modules can add queries with
+`builder.queryField` in the same way.

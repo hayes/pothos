@@ -1,0 +1,25 @@
+{
+  "id": "types-enum-species",
+  "title": "Enum names and internal values",
+  "description": "Run Northern and Unknown. Change Northern to Masai to compare the GraphQL name with the internal value received by resolvers.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/enums"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\n\nconst GiraffeSpecies = builder.enumType('GiraffeSpecies', {\n  values: {\n    Southern: {\n      description: 'Also known as two-horned giraffe',\n      value: 'giraffa',\n    },\n    Masai: { value: 'tippelskirchi' },\n    Reticulated: { value: 'reticulata' },\n    Northern: { value: 'camelopardalis' },\n    Unknown: { deprecationReason: 'Use a nullable species field instead.' },\n  },\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    species: t.field({\n      type: GiraffeSpecies,\n      args: { value: t.arg({ type: GiraffeSpecies, required: true }) },\n      resolve: (_parent, { value }) => value,\n    }),\n    internalValue: t.string({\n      args: { value: t.arg({ type: GiraffeSpecies, required: true }) },\n      resolve: (_parent, { value }) => value,\n    }),\n  }),\n});\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query EnumSpecies {\n  species(value: Northern)\n  internalValue(value: Northern)\n  deprecated: species(value: Unknown)\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query EnumSpecies {\n  species(value: Northern)\n  internalValue(value: Northern)\n  deprecated: species(value: Unknown)\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ]
+}

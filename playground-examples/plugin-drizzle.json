@@ -1,0 +1,121 @@
+{
+  "id": "plugin-drizzle",
+  "title": "A publishing API with Drizzle",
+  "description": "Explore how Pothos turns GraphQL selections into Drizzle queries, with related records, pagination, and private fields. Run a query, then inspect the options in Queries and the SQL in Console.",
+  "category": "plugins",
+  "difficulty": "intermediate",
+  "relatedDocs": [
+    "/docs/plugins/drizzle"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import { builder } from './builder';\nimport './types/user';\nimport './types/post';\nimport './types/attachments';\nimport './types/viewer';\nimport './queries';\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "builder.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport DrizzlePlugin from '@pothos/plugin-drizzle';\nimport RelayPlugin from '@pothos/plugin-relay';\nimport { getTableConfig } from 'drizzle-orm/sqlite-core';\nimport { db } from './database';\nimport { relations } from './tables';\n\nexport const builder = new SchemaBuilder<{\n  DrizzleRelations: typeof relations;\n  Context: { userId: number };\n}>({\n  relay: { nodesOnConnection: true },\n  plugins: [RelayPlugin, DrizzlePlugin],\n  drizzle: { client: db, relations, getTableConfig },\n});\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "database.ts",
+      "content": "import { drizzle, type SqliteProxyExecutors } from 'drizzle-orm/sqlite-proxy';\nimport initSqlJs, { type QueryExecResult, type SqlValue } from 'sql.js';\nimport { relations } from './tables';\n\n// sql.js executes real SQLite in WebAssembly. Keep the serialized database\n// with this schema, so rebuilding/resetting the schema also resets its data.\n// Closing each connection releases WASM memory even when an example is replaced.\nconst sqlite = initSqlJs({\n  locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/sql.js@1.14.1/dist/${file}`,\n});\nlet saved: Uint8Array | undefined;\nconst seed = `\nPRAGMA foreign_keys = ON;\nCREATE TABLE users (id INTEGER PRIMARY KEY, firstName TEXT NOT NULL, lastName TEXT NOT NULL, email TEXT NOT NULL UNIQUE, role TEXT NOT NULL);\nCREATE TABLE profiles (id INTEGER PRIMARY KEY, userId INTEGER NOT NULL UNIQUE REFERENCES users(id), bio TEXT);\nCREATE TABLE posts (id INTEGER PRIMARY KEY, authorId INTEGER NOT NULL REFERENCES users(id), title TEXT NOT NULL, content TEXT NOT NULL, published INTEGER NOT NULL, createdAt TEXT NOT NULL);\nCREATE TABLE media (id INTEGER PRIMARY KEY, url TEXT NOT NULL, uploadedById INTEGER NOT NULL REFERENCES users(id));\nCREATE TABLE postMedia (id INTEGER PRIMARY KEY, postId INTEGER NOT NULL REFERENCES posts(id), mediaId INTEGER NOT NULL REFERENCES media(id), caption TEXT, UNIQUE(postId, mediaId));\nINSERT INTO users VALUES (1, 'Maya', 'Chen', 'maya@example.com', 'editor'), (2, 'Leo', 'Silva', 'leo@example.com', 'author'), (3, 'Nora', 'Ellis', 'nora@example.com', 'author');\nINSERT INTO profiles VALUES (1, 1, 'Writes about community gardens.');\nINSERT INTO posts VALUES\n(1, 1, 'Starting a seed library', 'Share seeds with your neighbors.', 1, '2026-01-15T09:00:00.000Z'),\n(2, 1, 'A guide to composting', 'Turn kitchen scraps into healthy soil.', 1, '2026-01-15T09:00:00.000Z'),\n(3, 2, 'Watering through summer', 'Water early and mulch deeply.', 1, '2026-01-15T09:00:00.000Z'),\n(5, 2, 'Saving rainwater', 'Leo’s unpublished draft.', 0, '2026-01-15T09:00:00.000Z'),\n(4, 1, 'Planning the spring exchange', 'An unpublished editorial draft.', 0, '2026-01-15T09:00:00.000Z');\nINSERT INTO media VALUES\n(1, 'https://images.example.com/seed-library.jpg', 2),\n(2, 'https://images.example.com/compost.jpg', 1),\n(3, 'https://images.example.com/mulch.jpg', 1);\nINSERT INTO postMedia VALUES\n(1, 1, 1, 'The neighborhood seed exchange'),\n(2, 2, 1, 'Seeds and soil at the community garden'),\n(3, 2, 2, 'Finished compost ready for planting'),\n(4, 2, 3, NULL);\n`;\n\nasync function execute(sql: string, params: SqlValue[]): Promise<QueryExecResult> {\n  const SQL = await sqlite;\n  const connection = new SQL.Database(saved);\n  try {\n    if (!saved) {\n      connection.run(seed);\n    }\n    connection.run('PRAGMA foreign_keys = ON');\n    console.log('SQL', sql, params);\n    const result = connection.exec(sql, params);\n    saved = connection.export();\n    return result[0] ?? { columns: [], values: [] };\n  } finally {\n    connection.close();\n  }\n}\n\n// Drizzle asks for rows as arrays by default, or as objects keyed by column for raw queries.\nfunction shapeRows({ columns, values }: QueryExecResult, rowMode?: 'array' | 'object') {\n  return rowMode === 'object'\n    ? values.map((row) => Object.fromEntries(columns.map((column, i) => [column, row[i]])))\n    : values;\n}\n\nexport const db = drizzle(\n  {\n    all: async (sql: string, params: SqlValue[], rowMode?: 'array' | 'object') =>\n      shapeRows(await execute(sql, params), rowMode),\n    get: async (sql: string, params: SqlValue[], rowMode?: 'array' | 'object') =>\n      shapeRows(await execute(sql, params), rowMode)[0],\n    run: execute,\n  } as SqliteProxyExecutors,\n  { relations },\n);\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "queries.ts",
+      "content": "import { eq } from 'drizzle-orm';\nimport { builder } from './builder';\nimport { db } from './database';\nimport { posts } from './tables';\nimport { Viewer } from './types/viewer';\n\nbuilder.queryType({\n  fields: (t) => ({\n    author: t.drizzleField({\n      type: 'users',\n      nullable: true,\n      args: { id: t.arg.int({ required: true }) },\n      resolve: (query, _root, args) => {\n        return db.query.users.findFirst(\n          query({\n            where: { id: args.id },\n          }),\n        );\n      },\n    }),\n  }),\n});\n\nbuilder.queryFields((t) => ({\n  me: t.drizzleField({\n    type: Viewer,\n    nullable: true,\n    resolve: (query, _root, _args, ctx) => {\n      return db.query.users.findFirst(\n        query({\n          where: { id: ctx.userId },\n        }),\n      );\n    },\n  }),\n  posts: t.drizzleConnection({\n    type: 'posts',\n    totalCount: () => {\n      return db.$count(posts, eq(posts.published, true));\n    },\n    resolve: (query) => {\n      return db.query.posts.findMany(\n        query({\n          where: { published: true },\n          // Three posts share this timestamp. Pothos adds the primary key\n          // to the cursor ordering, so traversing pages still visits each once.\n          orderBy: { createdAt: 'desc' },\n        }),\n      );\n    },\n  }),\n}));\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "tables.ts",
+      "content": "import { defineRelations } from 'drizzle-orm';\nimport { integer, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core';\n\nexport const users = sqliteTable('users', {\n  id: integer().primaryKey(),\n  firstName: text().notNull(),\n  lastName: text().notNull(),\n  email: text().notNull().unique(),\n  role: text({ enum: ['editor', 'author'] }).notNull(),\n});\nexport const profiles = sqliteTable('profiles', {\n  id: integer().primaryKey(),\n  userId: integer()\n    .notNull()\n    .unique()\n    .references(() => users.id),\n  bio: text(),\n});\nexport const posts = sqliteTable('posts', {\n  id: integer().primaryKey(),\n  authorId: integer()\n    .notNull()\n    .references(() => users.id),\n  title: text().notNull(),\n  content: text().notNull(),\n  published: integer({ mode: 'boolean' }).notNull(),\n  createdAt: text().notNull(),\n});\nexport const media = sqliteTable('media', {\n  id: integer().primaryKey(),\n  url: text().notNull(),\n  uploadedById: integer()\n    .notNull()\n    .references(() => users.id),\n});\nexport const postMedia = sqliteTable(\n  'postMedia',\n  {\n    caption: text(),\n    id: integer().primaryKey(),\n    postId: integer()\n      .notNull()\n      .references(() => posts.id),\n    mediaId: integer()\n      .notNull()\n      .references(() => media.id),\n  },\n  (table) => [unique().on(table.postId, table.mediaId)],\n);\n\nexport const relations = defineRelations({ users, profiles, posts, media, postMedia }, (r) => ({\n  users: {\n    profile: r.one.profiles({ from: r.users.id, to: r.profiles.userId }),\n    posts: r.many.posts({ from: r.users.id, to: r.posts.authorId }),\n  },\n  profiles: { user: r.one.users({ from: r.profiles.userId, to: r.users.id, optional: false }) },\n  posts: {\n    attachments: r.many.postMedia({ from: r.posts.id, to: r.postMedia.postId }),\n    author: r.one.users({ from: r.posts.authorId, to: r.users.id, optional: false }),\n    media: r.many.media({\n      from: r.posts.id.through(r.postMedia.postId),\n      to: r.media.id.through(r.postMedia.mediaId),\n    }),\n  },\n  postMedia: {\n    media: r.one.media({ from: r.postMedia.mediaId, to: r.media.id, optional: false }),\n  },\n  media: {\n    uploadedBy: r.one.users({ from: r.media.uploadedById, to: r.users.id, optional: false }),\n  },\n}));\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "types/attachments.ts",
+      "content": "import { drizzleConnectionHelpers } from '@pothos/plugin-drizzle';\nimport { builder } from '../builder';\nimport { Media } from './post';\n\nconst attachmentArgs = builder.args((t) => ({\n  hasCaption: t.boolean({ defaultValue: false }),\n}));\n\nconst attachments = drizzleConnectionHelpers(builder, 'postMedia', {\n  args: () => attachmentArgs,\n  query: (args) => ({\n    orderBy: { id: 'asc' },\n    where: args.hasCaption ? { caption: { isNotNull: true } } : {},\n  }),\n  select: (nestedSelection) => {\n    return {\n      columns: { caption: true },\n      with: { media: nestedSelection() },\n    };\n  },\n  resolveNode: (attachment) => attachment.media,\n});\n\nbuilder.drizzleObjectField('posts', 'attachments', (t) =>\n  t.connection(\n    {\n      type: Media,\n      args: attachments.getArgs(),\n      select: (args, ctx, nestedSelection) => {\n        return {\n          with: {\n            attachments: attachments.getQuery(args, ctx, nestedSelection),\n          },\n        };\n      },\n      resolve: (post, args, ctx) => {\n        return attachments.resolve(post.attachments, args, ctx);\n      },\n    },\n    {},\n    {\n      fields: (edge) => ({\n        caption: edge.string({\n          nullable: true,\n          resolve: (attachment) => attachment.caption,\n        }),\n      }),\n    },\n  ),\n);\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "types/post.ts",
+      "content": "import { builder } from '../builder';\n\nbuilder.drizzleObject('posts', {\n  name: 'Post',\n  select: {},\n  fields: (t) => ({\n    id: t.exposeID('id'),\n    title: t.exposeString('title'),\n    author: t.relation('author'),\n    media: t.relation('media'),\n    mediaConnection: t.relatedConnection('media', {\n      query: { orderBy: { id: 'asc' } },\n      totalCount: true,\n    }),\n  }),\n});\nexport const Media = builder.drizzleObject('media', {\n  name: 'Media',\n  fields: (t) => ({ url: t.exposeString('url'), uploadedBy: t.relation('uploadedBy') }),\n});\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "types/user.ts",
+      "content": "import { eq } from 'drizzle-orm';\nimport { builder } from '../builder';\nimport { posts } from '../tables';\n\nbuilder.drizzleNode('users', {\n  name: 'User',\n  id: { column: (user) => user.id },\n  select: {},\n  fields: (t) => ({\n    firstName: t.exposeString('firstName'),\n    fullName: t.string({\n      select: { columns: { firstName: true, lastName: true } },\n      resolve: (user) => `${user.firstName} ${user.lastName}`,\n    }),\n    lowercaseName: t.string({\n      select: {\n        extras: {\n          lowercaseName: (users, { sql }) => sql<string>`lower(${users.firstName})`,\n        },\n      },\n      resolve: (user) => user.lowercaseName,\n    }),\n    bio: t.string({\n      nullable: true,\n      select: { with: { profile: true } },\n      resolve: (user) => user.profile?.bio,\n    }),\n    posts: t.relation('posts', {\n      args: { oldestFirst: t.arg.boolean() },\n      query: (args) => ({\n        where: { published: true },\n        orderBy: {\n          createdAt: args.oldestFirst ? 'asc' : 'desc',\n          id: args.oldestFirst ? 'asc' : 'desc',\n        },\n      }),\n    }),\n    postCount: t.relatedCount('posts', { where: eq(posts.published, true) }),\n    postsConnection: t.relatedConnection('posts', {\n      query: { where: { published: true }, orderBy: { createdAt: 'desc' } },\n      totalCount: true,\n    }),\n  }),\n});\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "types/viewer.ts",
+      "content": "import { builder } from '../builder';\n\nexport const Viewer = builder.drizzleInterface('users', {\n  variant: 'Viewer',\n  select: { columns: { id: true, role: true } },\n  resolveType: (user) => (user.role === 'editor' ? 'EditorViewer' : 'AuthorViewer'),\n  fields: (t) => ({\n    user: t.variant('users'),\n    email: t.exposeString('email'),\n    drafts: t.relation('posts', {\n      query: { where: { published: false }, orderBy: { id: 'asc' } },\n    }),\n  }),\n});\nbuilder.drizzleObject('users', {\n  variant: 'EditorViewer',\n  interfaces: [Viewer],\n  select: { columns: { id: true, role: true } },\n  fields: (t) => ({ canReviewSubmissions: t.boolean({ resolve: () => true }) }),\n});\nbuilder.drizzleObject('users', {\n  variant: 'AuthorViewer',\n  interfaces: [Viewer],\n  select: { columns: { id: true, role: true } },\n});\n\nbuilder.drizzleObjectField('users', 'viewer', (t) =>\n  t.variant(Viewer, {\n    select: { columns: { id: true } },\n    isNull: (user, _args, ctx) => user.id !== ctx.userId,\n  }),\n);\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Author {\n  author(id: 1) {\n    id\n    fullName\n    bio\n    postCount\n    posts {\n      title\n      author {\n        fullName\n      }\n    }\n  }\n}\n",
+  "queries": [
+    {
+      "title": "01-author",
+      "query": "query Author {\n  author(id: 1) {\n    id\n    fullName\n    bio\n    postCount\n    posts {\n      title\n      author {\n        fullName\n      }\n    }\n  }\n}\n",
+      "variables": "",
+      "context": "{ \"userId\": 1 }\n"
+    },
+    {
+      "title": "02-aliases",
+      "query": "# Compare the newest and oldest selections in Queries, then inspect their SQL in Console.\nquery Aliases {\n  author(id: 1) {\n    newest: posts {\n      title\n    }\n    oldest: posts(oldestFirst: true) {\n      title\n    }\n  }\n}\n",
+      "variables": "",
+      "context": "{ \"userId\": 1 }\n"
+    },
+    {
+      "title": "03-viewer",
+      "query": "# Change userId to 2 in Context to see the other viewer and their drafts.\nquery Viewer {\n  me {\n    __typename\n    email\n    user {\n      fullName\n    }\n    drafts {\n      title\n    }\n    ... on EditorViewer {\n      canReviewSubmissions\n    }\n  }\n}\n",
+      "variables": "",
+      "context": "{ \"userId\": 1 }\n"
+    },
+    {
+      "title": "04-pagination",
+      "query": "# To load the next page, copy pageInfo.endCursor into after in Variables and run again.\nquery Pagination($after: String) {\n  posts(first: 2, after: $after) {\n    totalCount\n    nodes {\n      title\n      media {\n        url\n        uploadedBy {\n          fullName\n        }\n      }\n    }\n    pageInfo {\n      startCursor\n      endCursor\n      hasNextPage\n      hasPreviousPage\n    }\n  }\n}\n",
+      "variables": "{ \"after\": null }\n",
+      "context": "{ \"userId\": 1 }\n"
+    },
+    {
+      "title": "05-missing",
+      "query": "query Missing {\n  author(id: 3) {\n    bio\n    posts {\n      title\n    }\n    postCount\n  }\n  missing: author(id: 999) {\n    fullName\n  }\n}\n",
+      "variables": "",
+      "context": "{ \"userId\": 1 }\n"
+    },
+    {
+      "title": "06-related-pages",
+      "query": "query RelatedPages {\n  author(id: 1) {\n    postsConnection(first: 1) {\n      totalCount\n      nodes {\n        title\n        mediaConnection(first: 1) {\n          totalCount\n          nodes {\n            url\n          }\n        }\n      }\n      pageInfo {\n        hasNextPage\n      }\n    }\n  }\n}\n",
+      "variables": "",
+      "context": "{ \"userId\": 1 }\n"
+    },
+    {
+      "title": "07-node",
+      "query": "query RefetchAuthor {\n  node(id: \"VXNlcjox\") {\n    ... on User {\n      fullName\n      posts {\n        title\n      }\n    }\n  }\n}\n",
+      "variables": "",
+      "context": "{ \"userId\": 1 }\n"
+    },
+    {
+      "title": "08-computed",
+      "query": "query ComputedNames {\n  author(id: 1) {\n    fullName\n    lowercaseName\n  }\n}\n",
+      "variables": "",
+      "context": "{ \"userId\": 1 }\n"
+    },
+    {
+      "title": "09-variant",
+      "query": "# Change userId to 2 in Context to see which author exposes private viewer fields.\nquery PrivateVariant {\n  own: author(id: 1) {\n    viewer {\n      email\n      drafts {\n        title\n      }\n    }\n  }\n  other: author(id: 2) {\n    viewer {\n      email\n      drafts {\n        title\n      }\n    }\n  }\n}\n",
+      "variables": "",
+      "context": "{ \"userId\": 1 }\n"
+    },
+    {
+      "title": "10-attachments",
+      "query": "# Set hasCaption to true in Variables to keep only captioned attachments.\n# To load the next attachment page, copy its pageInfo.endCursor into after in Variables.\nquery Attachments($after: String, $hasCaption: Boolean = false) {\n  author(id: 1) {\n    postsConnection(first: 1) {\n      nodes {\n        title\n        attachments(first: 2, after: $after, hasCaption: $hasCaption) {\n          edges {\n            caption\n            node {\n              url\n              uploadedBy {\n                fullName\n              }\n            }\n          }\n          pageInfo {\n            startCursor\n            endCursor\n            hasNextPage\n            hasPreviousPage\n          }\n        }\n      }\n    }\n  }\n}\n",
+      "variables": "{\n  \"after\": null,\n  \"hasCaption\": false\n}\n",
+      "context": "{ \"userId\": 1 }\n"
+    }
+  ],
+  "defaultActiveFile": 3
+}

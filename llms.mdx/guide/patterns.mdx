@@ -1,0 +1,135 @@
+# Patterns
+URL: /docs/guide/patterns
+Guide for using common patterns in Pothos
+
+
+## Sharing fields between types [#sharing-fields-between-types]
+
+If you have common fields or arguments that are shared across multiple types (but you don't want to
+use an interface to share the common logic) you can write helper functions to generate these fields
+for you.
+
+### Objects and Interfaces [#objects-and-interfaces]
+
+The shared `idLength` resolver computes the length of each object's ID.
+
+```typescript playground example="architecture-shared-fields"
+import type { ObjectRef } from '@pothos/core';
+import SchemaBuilder from '@pothos/core';
+
+const builder = new SchemaBuilder({});
+
+type BuilderTypes = typeof builder.$inferSchemaTypes;
+
+function addCommonFields(refs: ObjectRef<BuilderTypes, unknown, { id: string }>[]) {
+  for (const ref of refs) {
+    builder.objectFields(ref, (t) => ({
+      id: t.exposeID('id', {}),
+      idLength: t.int({
+        resolve: (parent) => parent.id.length,
+      }),
+    }));
+  }
+}
+
+const WithCommonFields1 = builder.objectRef<{ id: string }>('WithCommonFields1').implement({});
+const WithCommonFields2 = builder.objectRef<{ id: string }>('WithCommonFields2').implement({});
+
+addCommonFields([WithCommonFields1, WithCommonFields2]);
+```
+
+This will apply the `id` and `idLength` fields to both of the object types. The `ObjectRef` type is
+what is returned when creating an object (or when calling `builder.objectRef`). It takes three generic
+parameters: the builder's SchemaTypes, the shape a resolver can return for that type, and the shape
+of the parent argument when defining fields. The parent shape defaults to the resolver shape.
+The resolver and parent shapes are generally the same, but can differ for some special cases (like with `loadableObject` from the dataloader plugin,
+which allows resolvers to resolve to an `ID` rather than the actual object). In this case,
+the helper requires an `id` on the parent shape because its field resolvers read that property.
+
+If you want to define fields on an interface, you can use `InterfaceRef` instead. If your helper
+accepts both, you can differentiate the refs by using `ref.kind` which will be either `Object` or
+`Interface`. Call `builder.interfaceFields` for interface refs.
+
+### Args [#args]
+
+The example mutation passes a reason to one field and omits it from the other.
+
+Args are a little more complicated than fields on objects and interfaces. Pothos infers the shape of args
+for your resolvers, so you can't just add on more args later. Instead, we can define a helper that
+returns a set of args to apply to your field. To make this work, we need to get a few extra types:
+
+```typescript playground example="architecture-shared-args"
+import SchemaBuilder, { type ArgBuilder } from '@pothos/core';
+
+const builder = new SchemaBuilder({});
+type BuilderTypes = typeof builder.$inferSchemaTypes;
+
+function createCommonArgs(arg: ArgBuilder<BuilderTypes>) {
+  return {
+    id: arg.id({}),
+    reason: arg({ type: 'String', required: false }),
+  };
+}
+
+builder.mutationType({
+  fields: (t) => ({
+    mutation1: t.boolean({
+      args: {
+        ...createCommonArgs(t.arg),
+      },
+      resolve: (_parent, args) => !!args.reason,
+    }),
+    mutation2: t.boolean({
+      args: {
+        ...createCommonArgs(t.arg),
+      },
+      resolve: (_parent, args) => !!args.reason,
+    }),
+  }),
+});
+```
+
+`typeof builder.$inferSchemaTypes` includes the defaults Pothos applies to the builder's settings.
+Use it to type the helper's `ArgBuilder` parameter, then spread the returned arguments into each
+field. The resolver's `args` type includes those arguments. If you already export the builder's
+settings as a `SchemaTypes` interface,
+`PothosSchemaTypes.ExtendDefaultTypes<SchemaTypes>` is another way to obtain the extended types.
+
+For a shared set of args tied to one builder, you can also use
+`builder.args`. See [Inferring Types](./inferring-types) for a helper
+that accepts different builders.
+
+### Input fields [#input-fields]
+
+Both input types use the helper to define their `reason` field.
+
+Input fields are similar to args, and also all need to be present when the type is defined so that
+Pothos can infer the correct types.
+
+```typescript playground example="architecture-shared-inputs"
+import type { InputFieldBuilder } from '@pothos/core';
+import SchemaBuilder from '@pothos/core';
+
+const builder = new SchemaBuilder({});
+
+type BuilderTypes = typeof builder.$inferSchemaTypes;
+
+function createInputFields(t: InputFieldBuilder<BuilderTypes, 'InputObject'>) {
+  return {
+    id: t.id({}),
+    reason: t.field({ type: 'String', required: false }),
+  };
+}
+
+const FirstInput = builder.inputType('InputWithCommonFields1', {
+  fields: (t) => ({
+    ...createInputFields(t),
+  }),
+});
+
+const SecondInput = builder.inputType('InputWithCommonFields2', {
+  fields: (t) => ({
+    ...createInputFields(t),
+  }),
+});
+```

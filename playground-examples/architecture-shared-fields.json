@@ -1,0 +1,25 @@
+{
+  "id": "architecture-shared-fields",
+  "title": "Sharing object fields",
+  "description": "Run the query, then change an id in the query resolvers and compare idLength.",
+  "category": "patterns",
+  "relatedDocs": [
+    "/docs/guide/patterns"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import type { ObjectRef } from '@pothos/core';\nimport SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\n\ntype BuilderTypes = typeof builder.$inferSchemaTypes;\n\nfunction addCommonFields(refs: ObjectRef<BuilderTypes, unknown, { id: string }>[]) {\n  for (const ref of refs) {\n    builder.objectFields(ref, (t) => ({\n      id: t.exposeID('id', {}),\n      idLength: t.int({\n        resolve: (parent) => parent.id.length,\n      }),\n    }));\n  }\n}\n\nconst WithCommonFields1 = builder.objectRef<{ id: string }>('WithCommonFields1').implement({});\nconst WithCommonFields2 = builder.objectRef<{ id: string }>('WithCommonFields2').implement({});\n\naddCommonFields([WithCommonFields1, WithCommonFields2]);\n\nbuilder.queryType({\n  fields: (t) => ({\n    first: t.field({ type: WithCommonFields1, resolve: () => ({ id: 'abc' }) }),\n    second: t.field({ type: WithCommonFields2, resolve: () => ({ id: 'abcdef' }) }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "{\n  first {\n    id\n    idLength\n  }\n  second {\n    id\n    idLength\n  }\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "{\n  first {\n    id\n    idLength\n  }\n  second {\n    id\n    idLength\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ]
+}

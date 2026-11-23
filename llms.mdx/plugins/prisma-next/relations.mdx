@@ -1,0 +1,232 @@
+# Relations
+URL: /docs/plugins/prisma-next/relations
+Adding relations to Prisma-backed types
+
+
+Use `t.relation` to expose a relation from your contract as a field. The plugin loads it with the
+parent's query, so a user's posts come back with the user:
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+    posts: t.relation('posts'),
+  }),
+});
+
+builder.prismaObject('Post', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+```
+
+Relation fields use the builder's
+[default field nullability](../../guide/changing-default-nullability), whether or not the relation
+is optional in the contract. Pass `nullable` to override.
+
+### Nullable relations and `onNull` [#nullable-relations-and-onnull]
+
+A to-one relation can be `null` when it is optional in the contract, or when a variant `type`
+filters the row out. To expose one as a non-null field, you have to set `onNull`. `'error'` makes
+GraphQL raise its usual non-null error for the field. A function can return an `Error` to throw
+instead, or a replacement row loaded with `collectionFromInfo`. This example uses the optional
+`Bug.reviewer` relation from [Model inheritance](./inheritance):
+
+```ts
+builder.prismaObject('Bug', {
+  fields: (t) => ({
+    reviewer: t.relation('reviewer', { nullable: true }),
+    // An error when the bug has no reviewer
+    requiredReviewer: t.relation('reviewer', { nullable: false, onNull: 'error' }),
+    // A different error
+    assignedReviewer: t.relation('reviewer', {
+      nullable: false,
+      onNull: () => new Error('Bug has no reviewer'),
+    }),
+  }),
+});
+```
+
+## Filtering and sorting [#filtering-and-sorting]
+
+Pass `query` to filter, sort, or limit the related rows. It takes `{ where, orderBy, limit, offset }`,
+or a function of the field's arguments and context that returns one. `where` takes anything the
+Collection's `where()` does. `orderBy` takes columns, each with a direction, and sorts nulls last
+unless you set `nulls`, as in a [connection](./connections#ordering-and-cursors). Here clients
+choose the sort order:
+
+```ts
+posts: t.relation('posts', {
+  args: { oldestFirst: t.arg.boolean() },
+  query: (args) => ({
+    orderBy: { createdAt: args.oldestFirst ? 'asc' : 'desc' },
+  }),
+}),
+```
+
+With `AsyncSelections: true` in the builder's types, the function can be async.
+
+To sort by an expression, `orderBy` also takes the selector functions that the Collection's
+`orderBy()` takes, one or an array of them:
+
+```ts
+posts: t.relation('posts', {
+  query: {
+    orderBy: (post, { fns }) => fns.raw`abs(${post.score} - 2.5)`.returns('sqlite/real@1').asc(),
+  },
+}),
+```
+
+A to-one relation takes no `query`. To filter one, select it in a field's `select` and return `null`
+from the resolver.
+
+### Paginating a list [#paginating-a-list]
+
+The [offset pattern for root fields](./queries#paginating-a-list) works for relations too, through
+`query`:
+
+```ts
+posts: t.relation('posts', {
+  args: { limit: t.arg.int(), offset: t.arg.int() },
+  query: (args) => ({
+    orderBy: { createdAt: 'desc' },
+    limit: args.limit ?? 10,
+    offset: args.offset ?? 0,
+  }),
+}),
+```
+
+For cursor-based pagination, use [`t.relatedConnection`](./connections#paginate-a-relation).
+
+### Aliases [#aliases]
+
+A query can select the same relation field more than once with different arguments:
+
+```graphql
+{
+  author(id: "u-alice") {
+    newest: posts(oldestFirst: false) { title }
+    oldest: posts(oldestFirst: true) { title }
+  }
+}
+```
+
+Each alias loads its own rows in the parent's query.
+
+## Counts and other aggregates [#counts-and-other-aggregates]
+
+`t.relationCount` adds an `Int` field that counts a to-many relation. Pass a `query` with a `where`
+to count only some rows:
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
+    postCount: t.relationCount('posts'),
+    publishedPostCount: t.relationCount('posts', { query: { where: { published: 1 } } }),
+    postCountByStatus: t.relationCount('posts', {
+      args: { published: t.arg.int({ required: true }) },
+      query: (args) => ({ where: { published: args.published } }),
+    }),
+  }),
+});
+```
+
+`query` works as it does on `t.relation`, but only takes `where`. `where` can also be a predicate:
+`query: { where: (post) => post.published.eq(1) }`.
+
+Count fields are always non-null. If an auth check on one fails, GraphQL sets the parent to `null`
+instead. To hide a count from some users, use a nullable field with a `select`, as below.
+
+For sums and other aggregates, use a function for the relation in a field's `select`. It gets the
+relation's Collection and returns an object of aggregates. Each key is added to the parent row:
+
+```ts
+builder.prismaObject('User', {
+  fields: (t) => ({
+    totalPostScore: t.float({
+      nullable: true,
+      select: { posts: (posts) => ({ totalPostScore: posts.sum('score') }) },
+      resolve: (user) => user.totalPostScore,
+    }),
+  }),
+});
+```
+
+Aggregate functions shouldn't have side effects.
+
+## Many-to-many [#many-to-many]
+
+Relations defined with `rel.manyToMany({ through, from, to })` work with `t.relation`. To expose
+columns from the junction table, define the junction as its own model and use two relations.
+
+## Returning rows from other fields [#returning-rows-from-other-fields]
+
+A plain `t.field` that returns a model's type has to return rows loaded by the plugin: the
+parent, relation rows loaded by a `select`, or rows from a query built with `collectionFromInfo`.
+These rows are typed as `PrismaPlanned<'User'>`. Returning a row you built by hand or loaded with
+a plain ORM query is a type error.
+
+```ts
+builder.prismaObject('Post', {
+  select: { author: true },
+  fields: (t) => ({
+    writer: t.field({ type: User, resolve: (post) => post.author }),
+  }),
+});
+```
+
+To load a relation as one of its [variants](./inheritance), set `type` to the variant's ref or
+model name. Only that variant's rows are loaded:
+
+```ts
+const Bug = builder.prismaObject('Bug', {
+  fields: (t) => ({ severity: t.exposeString('severity') }),
+});
+
+builder.prismaObject('User', {
+  fields: (t) => ({
+    bugs: t.field({
+      type: [Bug],
+      select: { tasks: { type: Bug } },
+      resolve: (user) => user.tasks,
+    }),
+  }),
+});
+```
+
+`collectionFromInfo` loads everything the query selects under the field, including relations and
+counts, in one query, like a `t.prismaField`. See [Mutations](./objects#mutations) for its `path`
+and `typeName` options:
+
+```ts
+import { collectionFromInfo } from '@pothos/plugin-prisma-next';
+
+builder.queryField('me', (t) =>
+  t.field({
+    type: User,
+    nullable: true,
+    resolve: async (_root, _args, ctx, info) => {
+      const users = await collectionFromInfo({
+        collection: db.orm.User.where({ id: ctx.userId }),
+        context: ctx,
+        info,
+      });
+      return users.first();
+    },
+  }),
+);
+```
+
+In a subscription, call it in `resolve`, which runs for each event. Rows returned from `subscribe`
+are loaded again.
+
+To return a row from a field whose type is `Node` or an interface from `builder.interfaceRef()`:
+
+* Brand it with the type's `addBrand`, such as `User.addBrand(row)`. Rows without a brand fail with
+  `Abstract type ... must resolve`.
+* If you set `__typename` yourself, or use a `resolveType` that returns a type name, TypeScript
+  doesn't check that the row was loaded by the plugin.

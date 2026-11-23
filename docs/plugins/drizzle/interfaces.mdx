@@ -1,0 +1,72 @@
+# Interfaces
+URL: /docs/plugins/drizzle/interfaces
+Creating interfaces for drizzle tables that can be shared by variants
+
+
+## Interfaces [#interfaces]
+
+`builder.drizzleInterface` works like `builder.drizzleObject`. It can define the primary type
+or a variant of a table. Here Viewer is a variant, leaving User as the public primary type.
+
+## Define the interface [#define-the-interface]
+
+```typescript playground example="plugin-drizzle" query="{ me { __typename email drafts { title } } }"
+export const Viewer = builder.drizzleInterface('users', {
+  variant: 'Viewer',
+  select: { columns: { id: true, role: true } },
+  resolveType: (user) => (user.role === 'editor' ? 'EditorViewer' : 'AuthorViewer'),
+  fields: (t) => ({
+    user: t.variant('users'),
+    email: t.exposeString('email'),
+    drafts: t.relation('posts', {
+      query: { where: { published: false }, orderBy: { id: 'asc' } },
+    }),
+  }),
+});
+```
+
+`resolveType` uses the selected `role` discriminator and returns GraphQL type names. Returning
+names avoids a circular reference between the interface and its implementations.
+
+## Selecting a viewer implementation [#selecting-a-viewer-implementation]
+
+```typescript playground example="plugin-drizzle" query="{ me { __typename drafts { title } ... on EditorViewer { canReviewSubmissions } } }"
+builder.drizzleObject('users', {
+  variant: 'EditorViewer',
+  interfaces: [Viewer],
+  select: { columns: { id: true, role: true } },
+  fields: (t) => ({ canReviewSubmissions: t.boolean({ resolve: () => true }) }),
+});
+builder.drizzleObject('users', {
+  variant: 'AuthorViewer',
+  interfaces: [Viewer],
+  select: { columns: { id: true, role: true } },
+});
+```
+
+The interface's `select` is planned whenever a field returns the interface. An implementation's
+own selection is planned when a fragment narrows to it. Selections are not inherited; put data
+required by an implementation in its selection as well. An implementation may select additional
+columns or expressions for fields that do not belong on the interface.
+
+Maya (`userId: 1`) resolves to EditorViewer with `canReviewSubmissions: true`. Leo (`userId: 2`)
+resolves to AuthorViewer, so the editor fragment contributes no field. The interface describes
+those result shapes; the authenticated root lookup enforces whose drafts are returned.
+
+## Extending an interface [#extending-an-interface]
+
+Fields can be added to an interface later with `builder.drizzleInterfaceField` and
+`builder.drizzleInterfaceFields`, which take the interface ref (or the table name) like their
+`drizzleObjectField(s)` counterparts:
+
+```ts
+builder.drizzleInterfaceFields(Viewer, (t) => ({
+  publishedPosts: t.relatedConnection('posts', {
+    query: { where: { published: true } },
+  }),
+}));
+```
+
+An object type implementing a drizzle interface must be based on the same table. A plain object
+type that implements one is planned with the interface's table, so fragments on it will select the
+relations it inherits.

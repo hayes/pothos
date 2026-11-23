@@ -1,0 +1,26 @@
+{
+  "id": "plugin-directives",
+  "title": "Inspect directive annotations",
+  "description": "Run Annotations: both hello aliases return world, and recordedDirectives shows limit 5. Change the source limit to 1 and rerun: the recorded metadata changes, but both greetings still succeed because no rate-limit transformer is installed. Reset example restores limit 5.",
+  "category": "plugins",
+  "relatedDocs": [
+    "/docs/plugins/directives"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport DirectivesPlugin from '@pothos/plugin-directives';\n\nconst builder = new SchemaBuilder<{\n  Directives: {\n    rateLimit: {\n      locations: 'FIELD_DEFINITION';\n      args: { limit: number; duration: number };\n    };\n  };\n}>({\n  plugins: [DirectivesPlugin],\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    hello: t.string({\n      directives: [{ name: 'rateLimit', args: { limit: 5, duration: 60 } }],\n      resolve: () => 'world',\n    }),\n  }),\n});\n\nbuilder.queryField('recordedDirectives', (t) =>\n  t.string({\n    resolve: () => JSON.stringify(schema.getQueryType()!.getFields().hello.extensions.directives),\n  }),\n);\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Annotations {\n  first: hello\n  second: hello\n  recordedDirectives\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query Annotations {\n  first: hello\n  second: hello\n  recordedDirectives\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

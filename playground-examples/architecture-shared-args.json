@@ -1,0 +1,25 @@
+{
+  "id": "architecture-shared-args",
+  "title": "Sharing arguments",
+  "description": "Run the mutation, then add a reason argument to mutation2 and run again.",
+  "category": "patterns",
+  "relatedDocs": [
+    "/docs/guide/patterns"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder, { type ArgBuilder } from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\ntype BuilderTypes = typeof builder.$inferSchemaTypes;\n\nfunction createCommonArgs(arg: ArgBuilder<BuilderTypes>) {\n  return {\n    id: arg.id({}),\n    reason: arg({ type: 'String', required: false }),\n  };\n}\n\nbuilder.mutationType({\n  fields: (t) => ({\n    mutation1: t.boolean({\n      args: {\n        ...createCommonArgs(t.arg),\n      },\n      resolve: (_parent, args) => !!args.reason,\n    }),\n    mutation2: t.boolean({\n      args: {\n        ...createCommonArgs(t.arg),\n      },\n      resolve: (_parent, args) => !!args.reason,\n    }),\n  }),\n});\n\nbuilder.queryType({ fields: (t) => ({ ready: t.boolean({ resolve: () => true }) }) });\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "mutation Mutation1 {\n  mutation1(reason: \"updated\")\n  mutation2\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "mutation Mutation1 {\n  mutation1(reason: \"updated\")\n  mutation2\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ]
+}

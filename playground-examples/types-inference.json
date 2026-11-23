@@ -1,0 +1,25 @@
+{
+  "id": "types-inference",
+  "title": "Inferring types for helpers",
+  "description": "Run user and getUsers. Change limit from 1 to 2. Hover input in toUser and parent in createObjectWithId to inspect types. Change MyInput.name from t.string to t.int: toUser now returns a numeric name where UserType requires a string, and the schema input changes to Int!.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/inferring-types"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\n\nconst MyInput = builder.inputType('MyInput', {\n  fields: (t) => ({\n    id: t.id({ required: true }),\n    name: t.string({ required: true }),\n  }),\n});\n\n// { id: string; name: string; }\ntype MyInputShape = typeof MyInput.$inferInput;\n\nconst UserRef = builder.objectRef<{ id: string; name: string }>('User').implement({\n  fields: (t) => ({\n    id: t.exposeID('id'),\n    name: t.exposeString('name'),\n  }),\n});\ntype UserType = typeof UserRef.$inferType;\n\n\nimport type { FieldMap } from '@pothos/core';\n\ntype BuilderTypes = typeof builder.$inferSchemaTypes;\n\nfunction createObjectWithId<T extends { id: string }>(\n  name: string,\n  fields: (t: PothosSchemaTypes.ObjectFieldBuilder<BuilderTypes, T>) => FieldMap,\n) {\n  const ref = builder.objectRef<T>(name);\n\n  ref.implement({\n    fields: (t) => ({\n      ...fields(t),\n      id: t.id({\n        resolve: (parent) => parent.id,\n        nullable: false,\n      }),\n    }),\n  });\n\n  return ref;\n}\n\nconst UserWithId = createObjectWithId<{\n  id: string;\n  name: string;\n}>('UserWithId', (t) => ({\n  name: t.exposeString('name'),\n}));\n\n\nimport type { SchemaTypes } from '@pothos/core';\n\nfunction createPaginationArgs<Types extends SchemaTypes>(\n  builder: PothosSchemaTypes.SchemaBuilder<Types>,\n) {\n  return builder.args((t) => ({\n    limit: t.int(),\n    offset: t.int(),\n  }));\n}\n\nconst users: UserType[] = [\n  { id: '1', name: 'Ada' },\n  { id: '2', name: 'Grace' },\n];\n\nfunction toUser(input: MyInputShape): UserType {\n  return { id: input.id, name: input.name };\n}\n\nbuilder.queryType({\n  fields: (t) => ({\n    user: t.field({\n      type: UserRef,\n      args: { input: t.arg({ type: MyInput, required: true }) },\n      resolve: (_parent, { input }) => toUser(input),\n    }),\n  }),\n});\n\nbuilder.queryField('getUsers', (t) =>\n  t.field({\n    type: [UserWithId],\n    args: {\n      ...createPaginationArgs(builder),\n    },\n    resolve: (_parent, { limit, offset }) =>\n      users.slice(offset ?? 0, (offset ?? 0) + (limit ?? users.length)),\n  }),\n);\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Inference {\n  user(input: { id: 3, name: \"Katherine\" }) {\n    id\n    name\n  }\n  getUsers(limit: 1) {\n    id\n    name\n  }\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query Inference {\n  user(input: { id: 3, name: \"Katherine\" }) {\n    id\n    name\n  }\n  getUsers(limit: 1) {\n    id\n    name\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ]
+}

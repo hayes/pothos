@@ -1,0 +1,25 @@
+{
+  "id": "types-enum-diet",
+  "title": "TypeScript enums",
+  "description": "Run diet and internalValue. Change Diet.HERBIVOROUS to Diet.CARNIVOROUS in the resolver and observe the GraphQL enum name.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/enums"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\n\nbuilder.queryType({});\n\nenum Diet {\n  HERBIVOROUS = 0,\n  CARNIVOROUS = 1,\n  OMNIVOROUS = 2,\n}\n\nbuilder.enumType(Diet, { name: 'Diet' });\n\nbuilder.queryField('diet', (t) =>\n  t.field({\n    type: Diet,\n    resolve: () => Diet.HERBIVOROUS,\n  }),\n);\n\nbuilder.queryField('internalValue', (t) => t.int({ resolve: () => Diet.HERBIVOROUS }));\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query EnumDiet {\n  diet\n  internalValue\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query EnumDiet {\n  diet\n  internalValue\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ]
+}

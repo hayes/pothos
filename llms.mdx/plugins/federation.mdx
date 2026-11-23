@@ -1,0 +1,459 @@
+# Federation plugin
+URL: /docs/plugins/federation
+Federation plugin docs for Pothos
+
+
+Build [Apollo Federation 2](https://www.apollographql.com/docs/federation/) subgraphs with Pothos.
+Register entity keys, resolve references from other services, and extend external types.
+The examples below describe separate users, inventory, and reviews services.
+
+## Usage [#usage]
+
+This page will describe the basics of the Pothos API for federation, but will not cover detailed
+information on how federation works, or what all the terms on this page mean. For more general
+information on federation, see the
+[official docs](https://www.apollographql.com/docs/federation/v2/)
+
+### Install [#install]
+
+You will need to install the plugin, as well as the directives plugin (`@pothos/plugin-directives`)
+and `@apollo/subgraph`
+
+<CodeBlockTabs defaultValue="npm">
+  <CodeBlockTabsList>
+    <CodeBlockTabsTrigger value="npm">
+      npm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="pnpm">
+      pnpm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="yarn">
+      yarn
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="bun">
+      bun
+    </CodeBlockTabsTrigger>
+  </CodeBlockTabsList>
+
+  <CodeBlockTab value="npm">
+    ```bash
+    npm install --save @pothos/plugin-federation @pothos/plugin-directives @apollo/subgraph
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="pnpm">
+    ```bash
+    pnpm add @pothos/plugin-federation @pothos/plugin-directives @apollo/subgraph
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="yarn">
+    ```bash
+    yarn add @pothos/plugin-federation @pothos/plugin-directives @apollo/subgraph
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="bun">
+    ```bash
+    bun add @pothos/plugin-federation @pothos/plugin-directives @apollo/subgraph
+    ```
+  </CodeBlockTab>
+</CodeBlockTabs>
+
+You will likely want to install @apollo/server as well, but it is not required if you want to use a
+different server
+
+<CodeBlockTabs defaultValue="npm">
+  <CodeBlockTabsList>
+    <CodeBlockTabsTrigger value="npm">
+      npm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="pnpm">
+      pnpm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="yarn">
+      yarn
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="bun">
+      bun
+    </CodeBlockTabsTrigger>
+  </CodeBlockTabsList>
+
+  <CodeBlockTab value="npm">
+    ```bash
+    npm install --save @apollo/server
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="pnpm">
+    ```bash
+    pnpm add @apollo/server
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="yarn">
+    ```bash
+    yarn add @apollo/server
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="bun">
+    ```bash
+    bun add @apollo/server
+    ```
+  </CodeBlockTab>
+</CodeBlockTabs>
+
+### Setup [#setup]
+
+```typescript
+import SchemaBuilder from '@pothos/core';
+import DirectivePlugin from '@pothos/plugin-directives';
+import FederationPlugin from '@pothos/plugin-federation';
+const builder = new SchemaBuilder({
+  // If you are using other plugins, the federation plugin should be listed after plugins like auth that wrap resolvers
+  plugins: [DirectivePlugin, FederationPlugin],
+});
+```
+
+### Run the local examples [#run-the-local-examples]
+
+The complete users, inventory, and reviews examples live in
+[website/local-examples/federation](https://github.com/hayes/pothos/tree/main/website/local-examples/federation).
+From a repository checkout with Node.js 22 or newer, install dependencies and run the local suites:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm --dir website check:local
+```
+
+This builds the required packages, installs the isolated local-example dependencies, and runs
+the federation, Grafast, and smart-subscription suites. The federation check executes each `.graphql` operation with its variable sidecar and asserts the checked-in
+expected response. Edit a representation in `users/02-entities.variables.json`, or the price and
+weight in `inventory/query.variables.json`, then update the corresponding expectation to test the
+changed result. These checks use in-process GraphQL execution. Serving each schema and composing
+a gateway are separate steps below. Apollo's schema tooling needs Node.js, so these examples
+run locally instead of in the browser playground.
+
+### Defining entities [#defining-entities]
+
+Defining entities for your schema is a 2 step process. First you will need to define an object type
+as you would normally, then you can convert that object type to an entity by providing a `key` (or
+`keys`), and a method to load that entity.
+
+```typescript
+type UserRecord = { id: string; name: string; username: string };
+const users: UserRecord[] = [{ id: '1', name: 'Leia', username: 'leia' }];
+
+const User = builder.objectRef<UserRecord>('User').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name'),
+    username: t.exposeString('username'),
+  }),
+});
+
+builder.asEntity(User, {
+  key: builder.selection<{ id: string }>('id'),
+  resolveReference: (user) => users.find(({ id }) => user.id === id),
+});
+```
+
+Run the local users example's `Entities` operation. Its representations load Leia by ID and return `null`
+for a missing user. Change the first representation's ID to `missing` to see reference resolution
+change the response. This executes one subgraph's `_entities` field locally; composition,
+gateway planning, and cross-service `requires`/`provides` behavior still need the local services
+described below.
+
+`keys` are defined using `builder.selection`. This method *MUST* be called with a generic argument
+that defines the types for any fields that are part of the key. `key` may also be an array.
+`resolveReference` will be called with the type used by the `key` selection.
+
+Entities are Object types that may be extended with or returned by fields in other services.
+`builder.asEntity` describes how the Entity will be loaded when used by another service. The `key`
+select (or selection) should use the types of scalars your server will produce for inputs. For
+example, Apollo server will convert all ID fields to `string`s, even if resolvers in other services
+return IDs as numbers.
+
+### Extending external entities [#extending-external-entities]
+
+External entities can be extended by calling `builder.externalRef`, and then calling implement on
+the returned ref.
+
+`builder.externalRef` takes the name of the entity, a selection (using `builder.selection`, just
+like a `key` on an entity object), and a resolve method that loads an object given a `key`. The
+return type of the resolver is used as the backing type for the ref, and will be the type of the
+`parent` arg when defining fields for this type. The `key` also describes what fields will be
+selected from another service to use as the `parent` object in resolvers for fields added when
+implementing the `externalRef`.
+
+The inventory service uses a separate builder with the setup above:
+
+```typescript
+const inventory = [{ upc: '1', inStock: true }];
+
+const Product = builder.externalRef(
+  'Product',
+  builder.selection<{ upc: string }>('upc'),
+  (entity) => {
+    const product = inventory.find(({ upc }) => upc === entity.upc);
+
+    // extends the entity ({upc: string}) with other product details available in this service
+    return product && { ...entity, ...product };
+  },
+);
+
+Product.implement({
+  // Additional external fields can be defined here which can be used by `requires` or `provides` directives
+  externalFields: (t) => ({
+    price: t.float(),
+    weight: t.float(),
+  }),
+  fields: (t) => ({
+    // exposes properties added during loading of the entity above
+    upc: t.exposeString('upc'),
+    inStock: t.exposeBoolean('inStock'),
+    shippingEstimate: t.float({
+      // fields can add a `requires` directive for any of the externalFields defined above
+      // which will be made available as part of the first arg in the resolver.
+      requires: builder.selection<{ weight?: number; price?: number }>('price weight'),
+      resolve: (data) => {
+        // free for expensive items
+        if ((data.price ?? 0) > 1000) {
+          return 0;
+        }
+        // estimate is based on weight
+        return (data.weight ?? 0) * 0.5;
+      },
+    }),
+  }),
+});
+```
+
+The inventory example supplies `price` and `weight` explicitly in `_entities` representations.
+Run it to compare a shipping estimate of `2` with free shipping for an expensive item. A gateway
+would obtain the required fields from another service; this isolated local example does not perform that fetch.
+
+### Selections with inline fragments [#selections-with-inline-fragments]
+
+The template-literal type that checks selection strings can not express selections that use inline
+fragments (e.g. selecting through a union or interface field). For these cases, a string can be cast
+to `FieldSet<Shape>` to bypass the selection string checks. The cast replaces the generic argument
+of `builder.selection` — the shape is inferred from the cast, and is still used for the resolver's
+`parent` type:
+
+This independent example assumes an external `Post` reference and a `MediaUnion` whose members
+are named `Image` and `Video`, both exposing a `url` field:
+
+```typescript
+import { type FieldSet } from '@pothos/plugin-federation';
+
+type Media = { __typename: 'Image'; url: string } | { __typename: 'Video'; url: string };
+
+Post.implement({
+  externalFields: (t) => ({
+    media: t.field({ type: [MediaUnion] }),
+  }),
+  fields: (t) => ({
+    mediaUrls: t.stringList({
+      requires: builder.selection(
+        'media { ... on Image { url } ... on Video { url } }' as FieldSet<{ media: Media[] }>,
+      ),
+      resolve: (post) => post.media.map((media) => media.url),
+    }),
+  }),
+});
+```
+
+`FieldSet` is accepted anywhere a selection string is expected, including `builder.selection` and
+`ref.provides`. The selection string is not validated against the shape, so make sure the selection
+matches the fields described by the generic argument.
+
+For a reference-only entity that this service does not resolve, use this alternative key definition:
+
+```ts
+const Product = builder.externalRef(
+  'Product',
+  builder.keyDirective(builder.selection<{ upc: string }>('upc'), false),
+);
+```
+
+### Adding a provides directive [#adding-a-provides-directive]
+
+To add a `@provides` directive, you will need to implement the Parent type of the field being
+provided as an external ref, and then use the `.provides` method of the returned ref when defining
+the field that will have the `@provides` directive. The provided field must be listed as an
+`externalField` in the external type.
+
+The reviews service uses another separate builder. It returns a known username with a user
+reference, so the gateway does not need to fetch that field from the users service for this path:
+
+```typescript
+type ReviewRecord = { id: string; body: string; authorID: string; authorUsername: string };
+const reviews: ReviewRecord[] = [
+  { id: '1', body: 'Useful notebook', authorID: '1', authorUsername: 'leia' },
+];
+
+const User = builder.externalRef('User', builder.selection<{ id: string }>('id')).implement({
+  externalFields: (t) => ({
+    // The field that will be provided
+    username: t.string(),
+  }),
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+
+const Review = builder.objectRef<ReviewRecord>('Review');
+Review.implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    body: t.exposeString('body'),
+    author: t.field({
+      // using User.provides<...>(...) instead of just User adds the provide annotations
+      // and ensures the resolved value includes data for the provided field
+      // The generic in Type.provides works the same as the `builder.selection` method.
+      type: User.provides<{ username: string }>('username'),
+      resolve: (review) => ({
+        id: review.authorID,
+        username: review.authorUsername,
+      }),
+    }),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    reviews: t.field({ type: [Review], resolve: () => reviews }),
+  }),
+});
+```
+
+The reviews example returns the provided username with the reference. Run it to observe the
+resolved value; proving that `@provides` saves a cross-service fetch requires a composed gateway.
+
+### Building your schema and starting a server [#building-your-schema-and-starting-a-server]
+
+Each service builds and serves its own schema:
+
+```typescript
+import { ApolloServer } from '@apollo/server';
+import { startStandaloneServer } from '@apollo/server/standalone';
+
+// Use `toSubGraphSchema` method to add subGraph specific types and queries to the schema
+const schema = builder.toSubGraphSchema({
+  // defaults to v2.6
+  linkUrl: 'https://specs.apollo.dev/federation/v2.3',
+  // defaults to the list of directives used in your schema
+  federationDirectives: ['@key', '@external', '@requires', '@provides'],
+});
+
+const server = new ApolloServer({
+  schema,
+});
+
+startStandaloneServer(server, { listen: { port: 4000 } })
+  .then(({ url }) => {
+    console.log(`🚀 Server ready at ${url}`);
+  })
+  .catch((error) => {
+    throw error;
+  });
+```
+
+For a functional example that combines multiple graphs built with Pothos into a single schema see
+[https://github.com/hayes/pothos/tree/main/packages/plugin-federation/tests/example](https://github.com/hayes/pothos/tree/main/packages/plugin-federation/tests/example)
+
+### Printing the schema [#printing-the-schema]
+
+If you are printing the schema as a string for any reason, and then using the printed schema for
+Apollo Federation(submitting if using Managed Federation, or composing manually with `rover`), you
+must use `printSubgraphSchema`(from `@apollo/subgraph`) or another compatible way of printing the
+schema(that includes directives) in order for it to work.
+
+### Field directives [#field-directives]
+
+Several federation directives can be configured directly when defining a field includes
+`@shareable`, `@tag`, `@inaccessible`, and `@override`.
+
+```ts
+t.field({
+  type: 'String',
+  shareable: true,
+  tag: ['someTag'],
+  inaccessible: true,
+  override: { from: 'users' },
+  resolve: () => 'example',
+});
+```
+
+For more details on these directives, see the official Federation documentation.
+
+### interface entities and @interfaceObject [#interface-entities-and-interfaceobject]
+
+Federation 2.3 introduces new features for federating interface definitions.
+
+Pass an interface to `asEntity` to define its keys. This example assumes your service already
+implements `Media` with concrete types and has a `loadMediaById` function returning those models:
+
+```ts
+const Media = builder.interfaceRef<{ id: string }>('Media').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+
+builder.asEntity(Media, {
+  key: builder.selection<{ id: string }>('id'),
+  resolveReference: ({ id }) => loadMediaById(id),
+});
+```
+
+In a separate service, extend that interface by creating an `interfaceObject`:
+
+```ts
+const Media = builder.objectRef<{ id: string }>('Media').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    // add new MediaFields here that are available on all implementors of the `Media` type
+  }),
+});
+
+builder.asEntity(Media, {
+  interfaceObject: true,
+  key: builder.selection<{ id: string }>('id'),
+  resolveReference: (ref) => ref,
+});
+```
+
+See federation documentation for more details on `interfaceObject`s
+
+### composeDirective [#composedirective]
+
+You can apply the `composeDirective` directive when building the subgraph schema:
+
+```ts
+import { DirectiveLocation, GraphQLDirective } from 'graphql';
+
+export const schema = builder.toSubGraphSchema({
+  // This adds the @composeDirective directive
+  composeDirectives: ['@custom'],
+  // composeDirective requires an @link directive on the schema pointing to the url for your directive
+  schemaDirectives: {
+    link: { url: 'https://myspecs.dev/myCustomDirective/v1.0', import: ['@custom'] },
+  },
+  // You currently also need to provide an actual implementation for your Directive
+  directives: [
+    new GraphQLDirective({
+      locations: [DirectiveLocation.OBJECT, DirectiveLocation.INTERFACE],
+      name: 'custom',
+    }),
+  ],
+});
+```

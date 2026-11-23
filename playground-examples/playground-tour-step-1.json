@@ -1,0 +1,43 @@
+{
+  "id": "playground-tour-step-1",
+  "title": "Run and edit",
+  "description": "Run the greeting query. Change Sam in the query to your name and run again. In schema.ts, change Hello to Welcome to edit the response.",
+  "category": "core",
+  "order": 1,
+  "relatedDocs": [
+    "/docs/guide/playground"
+  ],
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "Run and edit",
+      "description": "Run the greeting query. Change Sam in the query to your name and run again. In schema.ts, change Hello to Welcome to edit the response.",
+      "order": 1,
+      "defaultActiveFile": "schema.ts"
+    },
+    {
+      "id": "step-2",
+      "title": "Explore a schema",
+      "description": "Run Tall giraffes, then All giraffes. Change minimumHeight in Variables to filter the herd. Open schema.graphql to inspect the field and argument types.",
+      "order": 2,
+      "defaultActiveFile": "schema.ts"
+    }
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\n\nbuilder.queryType({\n  fields: (t) => ({\n    greeting: t.string({\n      nullable: false,\n      args: { name: t.arg.string({ required: true }) },\n      resolve: (_parent, args) => `Hello, ${args.name}!`,\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Greeting {\n  greeting(name: \"Sam\")\n}\n",
+  "queries": [
+    {
+      "title": "Greeting",
+      "query": "query Greeting {\n  greeting(name: \"Sam\")\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

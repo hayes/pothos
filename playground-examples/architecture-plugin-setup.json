@@ -1,0 +1,25 @@
+{
+  "id": "architecture-plugin-setup",
+  "title": "Plugin setup",
+  "description": "Run hello to check that the configured builder produces a schema.",
+  "category": "patterns",
+  "relatedDocs": [
+    "/docs/guide/using-plugins"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport ScopeAuthPlugin from '@pothos/plugin-scope-auth';\n\nconst builder = new SchemaBuilder({\n  plugins: [ScopeAuthPlugin],\n  scopeAuth: {\n    authScopes: () => ({}),\n  },\n});\n\nbuilder.queryType({ fields: (t) => ({ hello: t.string({ resolve: () => 'Hello' }) }) });\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "{\n  hello\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "{\n  hello\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ]
+}

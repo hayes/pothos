@@ -1,0 +1,49 @@
+{
+  "id": "plugin-scope-auth-variant-private-nodes",
+  "title": "Request permissions and protected writes — Private node policy",
+  "description": "Edit permissions in Context and compare signed-out and reader operations. Featured-article grants allow a different path than direct node reads; the private policy also requires login. Run writes and reads in order. Reset restores data. Context is fixture data.",
+  "category": "plugins",
+  "relatedDocs": [
+    "/docs/plugins/scope-auth",
+    "/docs/plugins/scope-auth/relay-nodes"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import { builder } from './builder';\nimport './nodes';\n\nbuilder.queryType({\n  authScopes: { loggedIn: true },\n  fields: (t) => ({\n    serviceName: t.string({\n      skipTypeScopes: true,\n      resolve: () => 'Publishing API',\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "builder.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport RelayPlugin from '@pothos/plugin-relay';\nimport ScopeAuthPlugin from '@pothos/plugin-scope-auth';\n\ntype Permission = 'readArticle' | 'editArticle';\ntype Context = { user: { id: string; permissions: Permission[] } | null };\n\nexport const builder = new SchemaBuilder<{\n  Context: Context;\n  AuthScopes: { loggedIn: boolean; permission: Permission };\n}>({\n  plugins: [ScopeAuthPlugin, RelayPlugin],\n  relay: {\n    nodeQueryOptions: {\n      authScopes: { loggedIn: true },\n    },\n    nodesQueryOptions: {\n      authScopes: { loggedIn: true },\n    },\n    nodeTypeOptions: {\n      authScopes: { loggedIn: true },\n    },\n  },\n  scopeAuth: {\n    authScopes: (context) => ({\n      loggedIn: !!context.user,\n      permission: (permission) => context.user?.permissions.includes(permission) ?? false,\n    }),\n    unauthorizedError: () => new Error('Not authorized'),\n  },\n});\n",
+      "language": "typescript"
+    },
+    {
+      "filename": "nodes.ts",
+      "content": "import { builder } from './builder';\n\ntype Article = { id: string; title: string };\nconst articles: Article[] = [{ id: '1', title: 'A field guide to GraphQL' }];\n\nconst ArticleNode = builder.objectRef<Article>('Article');\n\nbuilder.node(ArticleNode, {\n  id: { resolve: (article: Article) => article.id },\n  loadOne: (id) => {\n    return articles.find((article) => article.id === id) ?? null;\n  },\n  authScopes: {\n    $any: {\n      permission: 'readArticle',\n      $granted: 'readFeaturedArticle',\n    },\n  },\n  fields: (t) => ({\n    title: t.exposeString('title'),\n  }),\n});\n\nbuilder.queryField('featuredArticle', (t) =>\n  t.field({\n    type: ArticleNode,\n    nullable: true,\n    grantScopes: ['readFeaturedArticle'],\n    resolve: () => {\n      return articles[0];\n    },\n  }),\n);\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query PrivateNodePolicy {\n  serviceName\n  featuredArticle {\n    title\n  }\n  node(id: \"QXJ0aWNsZTox\") {\n    ... on Article {\n      title\n    }\n  }\n}\n",
+  "queries": [
+    {
+      "title": "01-signed-out",
+      "query": "query PrivateNodePolicy {\n  serviceName\n  featuredArticle {\n    title\n  }\n  node(id: \"QXJ0aWNsZTox\") {\n    ... on Article {\n      title\n    }\n  }\n}\n",
+      "variables": "",
+      "context": "{ \"user\": null }\n"
+    },
+    {
+      "title": "02-reader",
+      "query": "query PrivateNodePolicy {\n  serviceName\n  featuredArticle {\n    title\n  }\n  node(id: \"QXJ0aWNsZTox\") {\n    ... on Article {\n      title\n    }\n  }\n}\n",
+      "variables": "",
+      "context": "{ \"user\": { \"id\": \"reader-1\", \"permissions\": [\"readArticle\"] } }\n"
+    },
+    {
+      "title": "03-signed-out-nodes",
+      "query": "query PrivateNodeBatch {\n  nodes(ids: [\"QXJ0aWNsZTox\"]) {\n    __typename\n  }\n}\n",
+      "variables": "",
+      "context": "{ \"user\": null }\n"
+    }
+  ],
+  "defaultActiveFile": 0
+}

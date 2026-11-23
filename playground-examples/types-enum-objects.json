@@ -1,0 +1,40 @@
+{
+  "id": "types-enum-objects",
+  "title": "Enums from objects",
+  "description": "Run vehicle and internalValue. Compare the docs tabs: mapped names produce SEDAN inside the resolver, while the keys-only definition produces sedan.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/enums"
+  ],
+  "variants": [
+    {
+      "id": "mapped",
+      "title": "Mapped values",
+      "default": true
+    },
+    {
+      "id": "values",
+      "title": "Values as names"
+    },
+    {
+      "id": "keys",
+      "title": "Keys as names"
+    }
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\n\nconst VehicleType = {\n  sedan: 'SEDAN',\n  suv: 'SUV',\n  truck: 'TRUCK',\n  motorcycle: 'MOTORCYCLE',\n} as const;\n\nconst VehicleTypeEnum = builder.enumType('VehicleType', {\n  values: Object.fromEntries(Object.entries(VehicleType).map(([name, value]) => [name, { value }])),\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    vehicle: t.field({\n      type: VehicleTypeEnum,\n      args: { value: t.arg({ type: VehicleTypeEnum, required: true }) },\n      resolve: (_parent, { value }) => value,\n    }),\n    internalValue: t.string({\n      args: { value: t.arg({ type: VehicleTypeEnum, required: true }) },\n      resolve: (_parent, { value }) => value,\n    }),\n  }),\n});\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query EnumObjects {\n  vehicle(value: sedan)\n  internalValue(value: sedan)\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query EnumObjects {\n  vehicle(value: sedan)\n  internalValue(value: sedan)\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ]
+}

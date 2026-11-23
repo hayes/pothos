@@ -1,0 +1,26 @@
+{
+  "id": "foundations-field-scalars",
+  "title": "Scalar fields",
+  "description": "Run the scalar fields. Change a resolver value and run again; inspect schema.graphql to compare the scalar and list types.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/fields"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\n\nbuilder.queryType({\n  fields: (t) => ({\n    name: t.field({\n      description: 'Name field',\n      type: 'String',\n      resolve: () => 'Gina',\n    }),\n  }),\n});\n\nbuilder.queryFields((t) => ({\n  id: t.id({ resolve: () => '123' }),\n  int: t.int({ resolve: () => 123 }),\n  float: t.float({ resolve: () => 1.23 }),\n  boolean: t.boolean({ resolve: () => false }),\n  string: t.string({ resolve: () => 'abc' }),\n  idList: t.idList({ resolve: () => ['123'] }),\n  intList: t.intList({ resolve: () => [123] }),\n  floatList: t.floatList({ resolve: () => [1.23] }),\n  booleanList: t.booleanList({ resolve: () => [false] }),\n  stringList: t.stringList({ resolve: () => ['abc'] }),\n}));\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Scalars {\n  name\n  id\n  int\n  float\n  boolean\n  string\n  idList\n  intList\n  floatList\n  booleanList\n  stringList\n}\n",
+  "queries": [
+    {
+      "title": "Scalars",
+      "query": "query Scalars {\n  name\n  id\n  int\n  float\n  boolean\n  string\n  idList\n  intList\n  floatList\n  booleanList\n  stringList\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

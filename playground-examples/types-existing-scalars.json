@@ -1,0 +1,25 @@
+{
+  "id": "types-existing-scalars",
+  "title": "Existing Date and JSON scalars",
+  "description": "Run date and json. Change the object in Variables and run again: JSON accepts data without giving it a specific application shape.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/scalars"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport { DateResolver, JSONResolver } from 'graphql-scalars';\n\nconst builder = new SchemaBuilder<{\n  Scalars: {\n    JSON: { Input: unknown; Output: unknown };\n    Date: { Input: Date; Output: Date };\n  };\n}>({});\n\nbuilder.addScalarType('JSON', JSONResolver);\nbuilder.addScalarType('Date', DateResolver);\n\nbuilder.queryType({\n  fields: (t) => ({\n    date: t.field({ type: 'Date', resolve: () => new Date('2026-01-01T00:00:00Z') }),\n    json: t.field({\n      type: 'JSON',\n      args: { value: t.arg({ type: 'JSON', required: true }) },\n      resolve: (_parent, { value }) => value,\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Scalars($value: JSON!) {\n  date\n  json(value: $value)\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query Scalars($value: JSON!) {\n  date\n  json(value: $value)\n}\n",
+      "variables": "{ \"value\": { \"name\": \"James\", \"height\": 5.2 } }\n",
+      "context": ""
+    }
+  ]
+}

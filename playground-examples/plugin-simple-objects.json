@@ -1,0 +1,26 @@
+{
+  "id": "plugin-simple-objects",
+  "title": "Infer a user and compute fields",
+  "description": "Run the query, then change firstName from Leia to Han: fullName becomes Han Organa and initials becomes HO. Inspect Node in the SDL for the inherited id field. Reset restores the example.",
+  "category": "plugins",
+  "relatedDocs": [
+    "/docs/plugins/simple-objects"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport SimpleObjectsPlugin from '@pothos/plugin-simple-objects';\n\nconst builder = new SchemaBuilder({\n  plugins: [SimpleObjectsPlugin],\n});\n\nconst ContactInfo = builder.simpleObject('ContactInfo', {\n  fields: (t) => ({\n    email: t.string({\n      nullable: false,\n    }),\n    phoneNumber: t.string({\n      nullable: true,\n    }),\n  }),\n});\n\nconst Node = builder.simpleInterface('Node', {\n  fields: (t) => ({\n    id: t.id({\n      nullable: false,\n    }),\n  }),\n});\n\nconst User = builder.simpleObject(\n  'User',\n  {\n    interfaces: [Node],\n    fields: (t) => ({\n      firstName: t.string({ nullable: false }),\n      lastName: t.string({ nullable: false }),\n      contactInfo: t.field({\n        type: ContactInfo,\n        nullable: false,\n      }),\n    }),\n  },\n  // You can add additional fields with resolvers with a third fields argument\n  (t) => ({\n    fullName: t.string({\n      resolve: (user) => `${user.firstName} ${user.lastName}`,\n    }),\n  }),\n);\n\nbuilder.queryType({\n  fields: (t) => ({\n    user: t.field({\n      type: User,\n      args: {\n        id: t.arg.id({ required: true }),\n      },\n      resolve: (_parent, { id }) => {\n        return {\n          id: String(id),\n          firstName: 'Leia',\n          lastName: 'Organa',\n          contactInfo: {\n            email: 'leia@example.com',\n            phoneNumber: null,\n          },\n        };\n      },\n    }),\n  }),\n});\n\n\nbuilder.objectFields(User, (t) => ({\n  initials: t.string({\n    resolve: (user) => `${user.firstName.slice(0, 1)}${user.lastName.slice(0, 1)}`,\n  }),\n}));\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query User {\n  user(id: \"1\") {\n    id\n    firstName\n    lastName\n    fullName\n    initials\n    contactInfo {\n      email\n      phoneNumber\n    }\n  }\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "query User {\n  user(id: \"1\") {\n    id\n    firstName\n    lastName\n    fullName\n    initials\n    contactInfo {\n      email\n      phoneNumber\n    }\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

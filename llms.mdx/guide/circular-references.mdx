@@ -1,0 +1,146 @@
+# Circular References
+URL: /docs/guide/circular-references
+Managing circular imports and recursive types in Pothos
+
+
+Two GraphQL types can refer to each other. The problems that sometimes accompany this come from
+JavaScript module initialization or TypeScript inference. They need different fixes.
+
+## Circular imports [#circular-imports]
+
+If two modules import each other, reading an export before its initialization can produce an
+undefined value or a `ReferenceError`, depending on the module system. Pothos defers field callbacks
+until `builder.toSchema()`, so references inside those callbacks can work even when the modules
+import each other.
+
+Keep the builder in a module that does not import your schema definitions. Import all schema modules
+before calling `toSchema()`, and do not import that schema entry point from a type definition. See
+[App Layout](./app-layout) for a complete file layout.
+
+In this example, `user.ts` and `post.ts` import each other, but neither reads the other module's ref
+until its field callback runs. The backing types use type-only imports, which do not run JavaScript.
+
+```typescript playground example="architecture-circular"
+// builder.ts
+import SchemaBuilder from '@pothos/core';
+
+export const builder = new SchemaBuilder({});
+
+```
+
+```typescript playground example="architecture-circular"
+// user.ts
+import { builder } from './builder';
+import { Post, type PostShape } from './post';
+
+export interface UserShape {
+  name: string;
+  posts: PostShape[];
+}
+
+export const User = builder.objectRef<UserShape>('User');
+
+User.implement({
+  fields: (t) => ({
+    name: t.exposeString('name'),
+    posts: t.expose('posts', { type: [Post] }),
+  }),
+});
+
+```
+
+```typescript playground example="architecture-circular"
+// post.ts
+import { builder } from './builder';
+import { User, type UserShape } from './user';
+
+export interface PostShape {
+  title: string;
+  author: UserShape;
+}
+
+export const Post = builder.objectRef<PostShape>('Post');
+
+Post.implement({
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.expose('author', { type: User }),
+  }),
+});
+
+```
+
+```typescript playground example="architecture-circular"
+// schema.ts
+import { builder } from './builder';
+import { User, type UserShape } from './user';
+import './post';
+
+const user: UserShape = { name: 'Alex', posts: [] };
+user.posts.push({ title: 'First post', author: user });
+
+builder.queryType({
+  fields: (t) => ({
+    user: t.field({ type: User, resolve: () => user }),
+  }),
+});
+
+export const schema = builder.toSchema();
+
+```
+
+The schema supports queries that follow the relationship in both directions:
+
+```graphql
+{
+  user {
+    name
+    posts {
+      title
+      author {
+        name
+      }
+    }
+  }
+}
+```
+
+Import values directly from the modules that define them. A barrel file that re-exports every type
+can introduce extra cycles. An entry point can import type-definition modules for their side effects
+without re-exporting their values.
+
+Deferring fields does not defer every option. For example, an `interfaces: [SomeInterface]` array is
+evaluated immediately. If a cycle reads an uninitialized ref there, change the imports or move the
+refs into a separate module that does not import their implementations.
+
+## TypeScript inference [#typescript-inference]
+
+A chained declaration such as `const User = builder.objectRef<UserShape>('User').implement(...)`
+can create an inference cycle when its fields refer back to `User`, directly or through another type.
+Declare the ref first, then call `User.implement(...)` separately, as in the example above. TypeScript
+can determine the ref's type without inspecting the fields. This breaks the inference dependency;
+it does not remove the JavaScript import cycle.
+
+You can also pass the declared ref to `builder.objectType`. As an alternative to the `Post.implement`
+call above, define its fields in separate calls:
+
+```typescript playground example="architecture-circular-variant-object-type"
+builder.objectType(Post, {
+  fields: (t) => ({ title: t.exposeString('title') }),
+});
+
+builder.objectField(Post, 'author', (t) => t.expose('author', { type: User }));
+```
+
+Classes already used by your application and names registered in the builder's `Objects` or
+`Interfaces` [SchemaTypes](./objects#using-schematypes) also supply backing types independently of
+field inference. String names can avoid importing refs between type-definition modules, but all
+implementations still need to be loaded before `toSchema()`.
+
+## Recursive inputs [#recursive-inputs]
+
+Input types infer their shape from their fields. For recursive inputs, declare the backing shape and
+an input ref explicitly, as described in [Recursive Inputs](./inputs#recursive-inputs).
+
+Plugins that infer backing types from their options may also need explicit types to break an
+inference cycle; check the relevant plugin's documentation.

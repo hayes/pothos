@@ -1,0 +1,113 @@
+# Printing Schemas
+URL: /docs/guide/printing-schemas
+Guide for printing a Pothos schema to an SDL schema file
+
+
+The [playground example](/playground?example=architecture-printing) runs the schema below and shows its SDL in `schema.graphql`. Field descriptions appear in the SDL. Writing the result to a file is a Node.js task.
+
+Sometimes it's useful to have an SDL version of your schema. To do this, you can use some tools from
+the `graphql` package to write your schema out as SDL to a file.
+
+Save the schema as `schema.ts`:
+
+```typescript playground example="architecture-printing"
+import SchemaBuilder from '@pothos/core';
+
+const builder = new SchemaBuilder({});
+
+builder.queryType({
+  fields: (t) => ({
+    hello: t.string({
+      args: {
+        name: t.arg.string(),
+      },
+      resolve: (_parent, { name }) => `hello, ${name || 'World'}`,
+    }),
+  }),
+});
+
+export const schema = builder.toSchema();
+
+```
+
+Write its SDL from a separate Node.js script:
+
+```typescript
+// print-schema.ts
+import { writeFileSync } from 'node:fs';
+import { printSchema } from 'graphql';
+import { schema } from './schema';
+
+const schemaAsString = printSchema(schema);
+writeFileSync('./schema.graphql', `${schemaAsString}\n`);
+```
+
+`builder.toSchema()` sorts the schema by default.
+
+Save the script as `print-schema.ts` and run it with a TypeScript runner:
+
+<CodeBlockTabs defaultValue="npm">
+  <CodeBlockTabsList>
+    <CodeBlockTabsTrigger value="npm">
+      npm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="pnpm">
+      pnpm
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="yarn">
+      yarn
+    </CodeBlockTabsTrigger>
+
+    <CodeBlockTabsTrigger value="bun">
+      bun
+    </CodeBlockTabsTrigger>
+  </CodeBlockTabsList>
+
+  <CodeBlockTab value="npm">
+    ```bash
+    npm install --save-dev tsx
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="pnpm">
+    ```bash
+    pnpm add --save-dev tsx
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="yarn">
+    ```bash
+    yarn add --dev tsx
+    ```
+  </CodeBlockTab>
+
+  <CodeBlockTab value="bun">
+    ```bash
+    bun add --dev tsx
+    ```
+  </CodeBlockTab>
+</CodeBlockTabs>
+
+```sh
+npx tsx print-schema.ts
+```
+
+In an existing application, import your exported `schema` instead of creating another builder. Keep
+schema construction separate from starting your server so this script does not open a listening port.
+The generated SDL can be checked into source control for schema reviews or read by client tooling.
+
+`printSchema` prints type definitions, not resolver functions or backing data. It also does not
+preserve applied custom directives; use a printer that supports those directives if downstream tools
+need them, such as when exporting a federation subgraph.
+
+## Using graphql-code-generator [#using-graphql-code-generator]
+
+An alternative to printing your schema directly is to generate your schema file using
+graphql-code-generator.
+
+You can add the `schema-ast` plugin to have graphql-code-generator generate your schema file for
+you.
+
+See [Generating Client Types](./generating-client-types) for more details

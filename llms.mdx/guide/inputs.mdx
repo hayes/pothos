@@ -1,0 +1,294 @@
+# Input Objects
+URL: /docs/guide/inputs
+Guide for defining Input Object types in Pothos
+
+
+Input objects group related argument values. Define one with `builder.inputType`, then use the
+returned ref as an argument type. Pothos infers the input shape from its fields.
+
+## Creating input objects [#creating-input-objects]
+
+The “Creating input objects” and “Recursive inputs” sections build on the same schema. Start with a backing model and
+an object ref for the mutation result:
+
+```typescript playground example="foundations-inputs"
+import SchemaBuilder from '@pothos/core';
+
+type Giraffe = {
+  name: string;
+  birthdate: string;
+  height: number;
+};
+
+const builder = new SchemaBuilder({});
+const giraffes: Giraffe[] = [];
+
+const GiraffeRef = builder.objectRef<Giraffe>('Giraffe').implement({
+  fields: (t) => ({
+    name: t.exposeString('name'),
+    birthdate: t.exposeString('birthdate'),
+    height: t.exposeFloat('height'),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    giraffes: t.field({ type: [GiraffeRef], resolve: () => giraffes }),
+  }),
+});
+```
+
+Input objects and output objects are separate GraphQL types, even when they have the same fields.
+Here, `GiraffeInput` describes the argument and `Giraffe` describes the result. The array stores the
+created giraffes in memory for this example.
+
+```typescript playground example="foundations-inputs"
+const GiraffeInput = builder.inputType('GiraffeInput', {
+  fields: (t) => ({
+    name: t.string({ required: true }),
+    birthdate: t.string({ required: true }),
+    height: t.float({ required: true }),
+  }),
+});
+
+builder.mutationType({
+  fields: (t) => ({
+    createGiraffe: t.field({
+      type: GiraffeRef,
+      args: {
+        input: t.arg({ type: GiraffeInput, required: true }),
+      },
+      resolve: (_root, { input }) => {
+        giraffes.push(input);
+        return input;
+      },
+    }),
+  }),
+});
+```
+
+`required: true` on the argument requires an input object. Each input field has its own
+requiredness; here all three fields must also be provided and cannot be `null`.
+
+```graphql playground example="foundations-inputs"
+mutation CreateGiraffe {
+  createGiraffe(input: { name: "Gina", birthdate: "2020-03-15", height: 4.8 }) {
+    name
+    height
+  }
+}
+
+```
+
+```json
+{ "data": { "createGiraffe": { "name": "Gina", "height": 4.8 } } }
+```
+
+The mutation appends each created giraffe to the in-memory array, which the `giraffes` query returns.
+
+## OneOf inputs [#oneof-inputs]
+
+A OneOf input accepts exactly one of its fields, with a non-null value. This is useful for a lookup
+that accepts either an ID or a name. Use a GraphQL.js version with OneOf support, and define the
+input with `isOneOf: true`:
+
+```typescript playground example="inputs-oneof"
+import SchemaBuilder from '@pothos/core';
+
+const builder = new SchemaBuilder({});
+
+export const GiraffeLookup = builder.inputType('GiraffeLookup', {
+  isOneOf: true,
+  fields: (t) => ({
+    id: t.id({ required: false }),
+    name: t.string({ required: false }),
+  }),
+});
+
+const giraffes = [{ id: '1', name: 'Gina' }];
+
+builder.queryType({
+  fields: (t) => ({
+    giraffeName: t.string({
+      args: {
+        by: t.arg({ type: GiraffeLookup, required: true }),
+      },
+      resolve: (_root, { by }) => {
+        if (by.id !== undefined) {
+          return giraffes.find((giraffe) => giraffe.id === by.id)?.name;
+        }
+
+        return giraffes.find((giraffe) => giraffe.name === by.name)?.name;
+      },
+    }),
+  }),
+});
+
+export const schema = builder.toSchema();
+
+```
+
+Each member must be optional (`required: false`) and must not have a `defaultValue`. Explicitly
+setting `required: false` also works when the builder uses `defaultInputFieldRequiredness: true`.
+The selected member still cannot be `null`: OneOf coercion enforces that constraint.
+
+The `by` argument above is required. This requires the input object itself; it does not make both
+alternatives required. With the default scalar types, Pothos infers `by` as
+`{ id: string; name?: never } | { name: string; id?: never }`, so checking `by.id !== undefined`
+selects the ID branch without a type assertion.
+
+Both `{ id: "1" }` and `{ name: "Gina" }` select Gina in this example. The following operation takes the lookup as a variable:
+
+```graphql playground example="inputs-oneof"
+query FindGiraffe($by: GiraffeLookup!) {
+  giraffeName(by: $by)
+}
+
+```
+
+| Value of the `by` variable          | Result                                        |
+| ----------------------------------- | --------------------------------------------- |
+| `{ "id": "1" }`                     | `giraffeName` is `"Gina"`                     |
+| `{ "name": "Gina" }`                | `giraffeName` is `"Gina"`                     |
+| `{}`                                | Rejected: exactly one field is required       |
+| `{ "id": "1", "name": "Gina" }`     | Rejected: more than one field is provided     |
+| `{ "id": null }`                    | Rejected: the selected value must be non-null |
+| `null`, or an omitted `by` variable | Rejected: the argument uses `GiraffeLookup!`  |
+
+Invalid inputs are rejected before the resolver runs. The same OneOf constraints apply to inline
+input literals.
+
+## Recursive inputs [#recursive-inputs]
+
+Input objects can reference other input refs directly. For circular references, declare the input
+shape explicitly with `builder.inputRef` so TypeScript does not have to infer it through the cycle.
+Create the ref before implementing its fields.
+
+Continue with the builder from [Creating input objects](#creating-input-objects), and add this input
+and mutation field:
+
+```typescript playground example="foundations-inputs"
+interface RecursiveGiraffeInputShape {
+  name: string;
+  birthdate: string;
+  height: number;
+  friends?: RecursiveGiraffeInputShape[] | null;
+}
+
+const RecursiveGiraffeInput = builder.inputRef<RecursiveGiraffeInputShape>('RecursiveGiraffeInput');
+
+RecursiveGiraffeInput.implement({
+  fields: (t) => ({
+    name: t.string({ required: true }),
+    birthdate: t.string({ required: true }),
+    height: t.float({ required: true }),
+    friends: t.field({
+      type: [RecursiveGiraffeInput],
+      required: { list: false, items: true },
+    }),
+  }),
+});
+
+function createGiraffes(input: RecursiveGiraffeInputShape): Giraffe[] {
+  const giraffe: Giraffe = {
+    name: input.name,
+    birthdate: input.birthdate,
+    height: input.height,
+  };
+
+  return [giraffe, ...(input.friends ?? []).flatMap(createGiraffes)];
+}
+
+builder.mutationField('createGiraffeWithFriends', (t) =>
+  t.field({
+    type: [GiraffeRef],
+    args: {
+      input: t.arg({ type: RecursiveGiraffeInput, required: true }),
+    },
+    resolve: (_root, { input }) => {
+      const created = createGiraffes(input);
+      giraffes.push(...created);
+      return created;
+    },
+  }),
+);
+
+export const schema = builder.toSchema();
+```
+
+The `friends` list can be omitted or set to `null`, but its items cannot be `null`. The TypeScript
+shape includes both optionality and `null` to match those values. The resolver uses each friend's
+own fields and follows nested `friends` lists, returning the parent before its descendants.
+
+```graphql playground example="foundations-inputs"
+mutation CreateFriends {
+  createGiraffeWithFriends(
+    input: {
+      name: "Gina"
+      birthdate: "2020-03-15"
+      height: 4.8
+      friends: [
+        {
+          name: "George"
+          birthdate: "2021-06-01"
+          height: 4.5
+          friends: [{ name: "Gemma", birthdate: "2022-08-10", height: 3.9 }]
+        }
+      ]
+    }
+  ) {
+    name
+    height
+  }
+}
+
+```
+
+```json
+{
+  "data": {
+    "createGiraffeWithFriends": [
+      { "name": "Gina", "height": 4.8 },
+      { "name": "George", "height": 4.5 },
+      { "name": "Gemma", "height": 3.9 }
+    ]
+  }
+}
+```
+
+## Declaring inputs in SchemaTypes [#declaring-inputs-in-schematypes]
+
+Alternatively, register input shapes in the builder's `Inputs` map to reference them by name.
+To use this approach for `createGiraffe`, keep the import and `Giraffe` backing model from the first
+example and replace its builder declaration with:
+
+```typescript playground example="foundations-inputs-named"
+const builder = new SchemaBuilder<{
+  Inputs: {
+    GiraffeInput: Giraffe;
+  };
+}>({});
+```
+
+Keep the `giraffes` array, `GiraffeRef`, and query definition. Replace the `GiraffeInput` ref
+declaration with this definition; registering a shape alone does not create the GraphQL input type.
+
+```typescript playground example="foundations-inputs-named"
+builder.inputType('GiraffeInput', {
+  fields: (t) => ({
+    name: t.string({ required: true }),
+    birthdate: t.string({ required: true }),
+    height: t.float({ required: true }),
+  }),
+});
+```
+
+In the `createGiraffe` mutation, the `input` argument now references that registered name:
+
+```typescript playground example="foundations-inputs-named"
+input: t.arg({ type: 'GiraffeInput', required: true }),
+```
+
+Keep the rest of that mutation unchanged and call `builder.toSchema()` after defining it. The first
+mutation and result on this page also work with this schema; the recursive example is independent
+of this alternative.

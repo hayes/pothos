@@ -1,0 +1,32 @@
+{
+  "id": "plugin-dataloader",
+  "title": "Batching and request caching",
+  "description": "Run the batching report, then the key-resolver query. Compare requested users with batchKeys: duplicates share a load and missing records return null. Change keys to [\"2\", \"1\", \"2\"] and compare order and cachedAgain. Each run gets a fresh context; Reset example restores the query.",
+  "category": "plugins",
+  "relatedDocs": [
+    "/docs/plugins/dataloader"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport DataloaderPlugin from '@pothos/plugin-dataloader';\n\ntype UserShape = { id: string; username: string };\ntype Context = { batches?: string[][] };\nconst users: UserShape[] = [\n  { id: '1', username: 'Ada' },\n  { id: '2', username: 'Grace' },\n  { id: '3', username: 'Katherine' },\n];\nconst builder = new SchemaBuilder<{ Context: Context }>({ plugins: [DataloaderPlugin] });\n\nconst User = builder.loadableObject('User', {\n  load: async (ids: string[], context: Context) => {\n    context.batches ??= [];\n    context.batches.push([...ids]);\n    // This source deliberately returns storage order, not requested order.\n    return users.filter((user) => ids.includes(user.id));\n  },\n  sort: (user) => user.id,\n  fields: (t) => ({\n    id: t.exposeID('id'),\n    username: t.exposeString('username'),\n  }),\n});\n\nconst BatchReport = builder\n  .objectRef<{\n    users: (UserShape | null)[];\n    batchKeys: string[][];\n    cachedAgain: boolean;\n  }>('BatchReport')\n  .implement({\n    fields: (t) => ({\n      users: t.field({\n        type: [User],\n        nullable: { list: false, items: true },\n        resolve: (report) => report.users,\n      }),\n      batchKeys: t.field({\n        type: t.listRef(t.listRef('String')),\n        resolve: (report) => report.batchKeys,\n      }),\n      cachedAgain: t.exposeBoolean('cachedAgain'),\n    }),\n  });\n\nbuilder.queryType({\n  fields: (t) => ({\n    users: t.field({\n      type: [User],\n      nullable: { list: false, items: true },\n      args: { ids: t.arg.stringList({ required: true }) },\n      resolve: (_parent, { ids }) => ids,\n    }),\n    batching: t.field({\n      type: BatchReport,\n      args: { ids: t.arg.stringList({ required: true }) },\n      resolve: async (_parent, { ids }, context) => {\n        const loader = User.getDataloader(context);\n        const loaded = await Promise.all(ids.map((id) => loader.load(id)));\n        const before = context.batches?.length ?? 0;\n        if (ids.length) {\n          await loader.load(ids[0]);\n        }\n        return {\n          users: loaded,\n          batchKeys: context.batches ?? [],\n          cachedAgain: (context.batches?.length ?? 0) === before,\n        };\n      },\n    }),\n  }),\n});\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Batching {\n  batching(ids: [\"3\", \"1\", \"3\", \"missing\"]) {\n    users {\n      id\n      username\n    }\n    batchKeys\n    cachedAgain\n  }\n}\n",
+  "queries": [
+    {
+      "title": "01-batching",
+      "query": "query Batching {\n  batching(ids: [\"3\", \"1\", \"3\", \"missing\"]) {\n    users {\n      id\n      username\n    }\n    batchKeys\n    cachedAgain\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "02-key-resolvers",
+      "query": "query KeyResolvers {\n  users(ids: [\"2\", \"1\", \"missing\"]) {\n    id\n    username\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

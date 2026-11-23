@@ -1,0 +1,32 @@
+{
+  "id": "foundations-context",
+  "title": "Request context",
+  "description": "Run Signed in and Signed out. Open Context to inspect each request’s currentUser, change its username, and run again. The resolver reads context rather than an argument.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs/guide/context"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\ninterface User {\n  id: string;\n  firstName: string;\n  username: string;\n}\n\nconst builder = new SchemaBuilder<{\n  Context: {\n    currentUser: User | null;\n  };\n}>({});\n\nconst UserRef = builder.objectRef<User>('User').implement({\n  fields: (t) => ({\n    id: t.exposeID('id'),\n    firstName: t.exposeString('firstName'),\n    username: t.exposeString('username'),\n  }),\n});\n\nbuilder.queryType({\n  fields: (t) => ({\n    currentUser: t.field({\n      type: UserRef,\n      nullable: true,\n      resolve: (_root, _args, context) => context.currentUser,\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query SignedIn {\n  currentUser {\n    id\n    username\n  }\n}\n",
+  "queries": [
+    {
+      "title": "01-Signed in",
+      "query": "query SignedIn {\n  currentUser {\n    id\n    username\n  }\n}\n",
+      "variables": "",
+      "context": "{\n  \"currentUser\": {\n    \"id\": \"1\",\n    \"firstName\": \"Gina\",\n    \"username\": \"gina\"\n  }\n}\n"
+    },
+    {
+      "title": "02-Signed out",
+      "query": "query SignedOut {\n  currentUser {\n    id\n    username\n  }\n}\n",
+      "variables": "",
+      "context": "{\n  \"currentUser\": null\n}\n"
+    }
+  ],
+  "defaultActiveFile": 0
+}

@@ -1,0 +1,25 @@
+{
+  "id": "architecture-troubleshooting",
+  "title": "Named builder types",
+  "description": "Run the viewerId query with the supplied Context. Change user.id in Context and run again. Keep the named PothosTypes interface when adapting this to a reproduction.",
+  "category": "patterns",
+  "relatedDocs": [
+    "/docs/guide/troubleshooting"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\ninterface PothosTypes {\n  Context: {\n    user: {\n      id: string;\n    };\n  };\n}\n\nconst builder = new SchemaBuilder<PothosTypes>({});\n\nbuilder.queryType({\n  fields: (t) => ({ viewerId: t.id({ resolve: (_parent, _args, context) => context.user.id }) }),\n});\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "{\n  viewerId\n}\n",
+  "queries": [
+    {
+      "title": "query",
+      "query": "{\n  viewerId\n}\n",
+      "variables": "",
+      "context": "{ \"user\": { \"id\": \"1\" } }\n"
+    }
+  ]
+}

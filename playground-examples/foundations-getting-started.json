@@ -1,0 +1,26 @@
+{
+  "id": "foundations-getting-started",
+  "title": "Your first schema",
+  "description": "Run hello, then remove its name argument to get hello, World. Edit the greeting in schema.ts and run again.",
+  "category": "core",
+  "relatedDocs": [
+    "/docs"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\n\nconst builder = new SchemaBuilder({});\n\nbuilder.queryType({\n  fields: (t) => ({\n    hello: t.string({\n      args: {\n        name: t.arg.string(),\n      },\n      resolve: (_parent, { name }) => `hello, ${name ?? 'World'}`,\n    }),\n  }),\n});\n\nexport const schema = builder.toSchema();\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query Hello {\n  hello(name: \"Pothos\")\n}\n",
+  "queries": [
+    {
+      "title": "Hello",
+      "query": "query Hello {\n  hello(name: \"Pothos\")\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}

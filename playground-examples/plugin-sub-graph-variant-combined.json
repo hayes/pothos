@@ -1,0 +1,38 @@
+{
+  "id": "plugin-sub-graph-variant-combined",
+  "title": "Select an API variant — Combined",
+  "description": "Run ProductName, ProductFields, then InternalNotes. Public and Shared omit internalNotes and reject its query; Internal and Combined expose it. Edit the subGraph selection in schema.ts to compare the filtered fields. Reset example restores the selected variant.",
+  "category": "plugins",
+  "relatedDocs": [
+    "/docs/plugins/sub-graph"
+  ],
+  "files": [
+    {
+      "filename": "schema.ts",
+      "content": "import SchemaBuilder from '@pothos/core';\nimport SubGraphPlugin from '@pothos/plugin-sub-graph';\n\nconst builder = new SchemaBuilder<{\n  SubGraphs: 'Public' | 'Internal';\n}>({\n  plugins: [SubGraphPlugin],\n  subGraphs: {\n    defaultForTypes: ['Public', 'Internal'],\n    fieldsInheritFromTypes: true,\n  },\n});\n\nconst Product = builder\n  .objectRef<{\n    id: string;\n    name: string;\n    internalNotes: string;\n  }>('Product')\n  .implement({\n    fields: (t) => ({\n      id: t.exposeID('id'),\n      name: t.exposeString('name'),\n      internalNotes: t.exposeString('internalNotes', {\n        subGraphs: ['Internal'],\n      }),\n    }),\n  });\n\nbuilder.queryType({\n  fields: (t) => ({\n    product: t.field({\n      type: Product,\n      resolve: () => ({ id: '1', name: 'Notebook', internalNotes: 'Restock next week' }),\n    }),\n  }),\n});\nexport const schema = builder.toSchema({ subGraph: ['Internal', 'Public'] });\n",
+      "language": "typescript"
+    }
+  ],
+  "defaultQuery": "query ProductName {\n  product {\n    name\n  }\n}\n",
+  "queries": [
+    {
+      "title": "01-product",
+      "query": "query ProductName {\n  product {\n    name\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "02-fields",
+      "query": "query ProductFields {\n  __type(name: \"Product\") {\n    fields {\n      name\n    }\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    },
+    {
+      "title": "03-notes",
+      "query": "query InternalNotes {\n  product {\n    internalNotes\n  }\n}\n",
+      "variables": "",
+      "context": ""
+    }
+  ],
+  "defaultActiveFile": 0
+}
