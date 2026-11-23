@@ -1,5 +1,12 @@
 # @pothos/plugin-drizzle
 
+## 0.20.6
+
+### Patch Changes
+
+- Updated dependencies [3f99569]
+  - @pothos/selection-mapper@0.3.1
+
 ## 0.20.5
 
 ### Patch Changes
