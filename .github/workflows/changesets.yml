@@ -4,11 +4,18 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      trust_check:
+        description: 'Validate npm trusted publishing with dry-run publishes instead of releasing'
+        type: boolean
+        default: false
 env:
   CI: true
 
 jobs:
   version:
+    if: ${{ !inputs.trust_check }}
     environment: npm-release
     timeout-minutes: 15
     runs-on: ubuntu-latest
@@ -98,3 +105,53 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # Validates each package's npm trusted-publishing config without publishing. A dry-run publish
+  # performs the OIDC token exchange, which counts as using the config; new configs expire if they
+  # aren't used within 48 hours. Configs are tied to this workflow file and environment.
+  trust-check:
+    if: ${{ inputs.trust_check }}
+    environment: npm-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: checkout code repository
+        uses: actions/checkout@v3
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          run_install: false
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate trusted publishing
+        run: |
+          failed=()
+          for dir in packages/*/; do
+            name=$(node -p "const p = require('./${dir}package.json'); p.private ? '' : p.name")
+            [ -n "$name" ] || continue
+            # A version that's already on npm stops at npm's version check, after the exchange.
+            out=$(cd "$dir" && NPM_CONFIG_LOGLEVEL=verbose pnpm publish --dry-run --ignore-scripts --no-git-checks 2>&1 || true)
+            if grep -q 'oidc Successfully retrieved and set token' <<< "$out"; then
+              echo "ok      $name"
+            else
+              echo "FAILED  $name"
+              grep -E ' oidc |npm error' <<< "$out" | sed 's/^/        /'
+              failed+=("$name")
+            fi
+          done
+          if [ ${#failed[@]} -gt 0 ]; then
+            echo "::error::Trusted-publishing token exchange failed for: ${failed[*]}"
+            exit 1
+          fi
