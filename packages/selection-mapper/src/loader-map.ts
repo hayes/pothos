@@ -98,22 +98,18 @@ const contextCaches = createContextCache(() => new WeakMap<object, Cache>());
  * An object the executor builds once per execution, and once per event of a subscription, and
  * hands to every resolver in it, @defer and @stream payloads included:
  *
- * - graphql-js 17: the `getAbortSignal` of the execution.
- * - graphql-js 16 and @graphql-tools/executor (Yoga): the root link of the path. They build one
+ * - graphql-js 16 and 17, @graphql-tools/executor (Yoga): the root link of the path. They build one
  *   path chain per execution or event, linking each field to its parent's, so every resolver
  *   beneath a root field shares its link, and the `subscribe` resolver has its own. Their fields'
  *   links carry a `typename`. A root field doesn't share its link with the others, so each root
  *   field has a cache of its own, which is all it reads.
  * - graphql-jit: the coerced `variableValues`. It builds a new path, without `typename`, for every
  *   resolver, but coerces the variables afresh for every execution and event.
+ *
+ * Not `info.getAbortSignal`: @graphql-tools/executor 2 builds a new getter for every resolver, and
+ * the signal it returns is the caller's, absent or shared by every event of a subscription.
  */
 function executionOf(info: GraphQLResolveInfo): object {
-  const signal = (info as { getAbortSignal?: object }).getAbortSignal;
-
-  if (signal) {
-    return signal;
-  }
-
   let { path } = info;
 
   if (path.typename === undefined) {
